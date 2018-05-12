@@ -259,7 +259,7 @@ optimizer.zero_grad()   # zero the gradient buffers
 output = net(input)
 loss = criterion(output, target)
 loss.backward()
-optimizer.step()    # Does the update
+optimizer.step()  # Does the update
 
 
 ###############################################################
