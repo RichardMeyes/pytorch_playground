@@ -118,7 +118,6 @@ while y.data.norm() < 1000:  # .data takes the data of the tensor, .norm takes t
     y = y * 2
 
 print(y)
-
 ###############################################################
 #
 gradients = torch.tensor([0.1, 1.0, 0.0001], dtype=torch.float)
@@ -134,7 +133,7 @@ print(x.requires_grad)
 print((x ** 2).requires_grad)
 
 with torch.no_grad():
-	print((x ** 2).requires_grad)
+    print((x ** 2).requires_grad)
 
 ###############################################################
 # **Read Later:**
