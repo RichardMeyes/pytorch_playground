@@ -2,4 +2,4 @@
 .idea/
 
 # data folder
-data/*
+MNIST/data/
