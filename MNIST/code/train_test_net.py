@@ -21,12 +21,14 @@ def plot_data():
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 20, bias=False)
-        self.fc2 = nn.Linear(20, 10, bias=False)
+        self.fc1 = nn.Linear(28 * 28, 20)
+        self.fc2 = nn.Linear(20, 20)
+        self.fc3 = nn.Linear(20, 10)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
     def train_net(self, epochs):
@@ -51,7 +53,7 @@ class Net(nn.Module):
                                                                                    loss.data.item()))
         if save:
             # save trained net
-            torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 10).pt')
+            torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 20, 10).pt')
 
     def test_net(self):
         # test the net
@@ -112,16 +114,16 @@ if __name__ == "__main__":
     trainset = torchvision.datasets.MNIST(root='../data', train=True, download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=4)
     testset = torchvision.datasets.MNIST(root='../data', train=False, download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=4)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
     classes = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
     if plot:
         plot_data()
 
     if train:
-        net.train_net(epochs=50)
+        net.train_net(epochs=100)
     else:
-        net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10).pt'))
+        net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 20, 10).pt'))
         net.eval()
 
     if test:
