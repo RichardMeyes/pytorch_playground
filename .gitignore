@@ -1,5 +1,6 @@
 # PyCharm project folder
 .idea/
 
-# data folder
+# data folder and plotting folder
 MNIST/data/
+MNIST/plots/
