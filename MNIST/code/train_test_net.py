@@ -21,9 +21,9 @@ def plot_data():
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 40, bias=False)
-        self.fc2 = nn.Linear(40, 20, bias=False)
-        self.fc3 = nn.Linear(20, 10, bias=False)
+        self.fc1 = nn.Linear(28 * 28, 20, bias=False)
+        self.fc2 = nn.Linear(20, 10, bias=False)
+        self.fc3 = nn.Linear(10, 10, bias=False)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -31,14 +31,16 @@ class Net(nn.Module):
         x = F.log_softmax(self.fc3(x), dim=1)  # needs NLLLos() loss
         return x
 
-    def train_net(self, epochs):
+    def train_net(self, criterion, optimizer, trainloader, epochs, device):
+        # save untrained net
+        if save:
+            torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 10)_untrained.pt')
         # train the net
         log_interval = 10
         for epoch in range(epochs):
             for batch_idx, (data, target) in enumerate(trainloader):
                 data, target = Variable(data), Variable(target)
-                if dev == "GPU":
-                    data, target = data.to(device), target.to(device)
+                data, target = data.to(device), target.to(device)
                 # resize data from (batch_size, 1, 28, 28) to (batch_size, 28*28)
                 data = data.view(-1, 28 * 28)
                 optimizer.zero_grad()
@@ -53,16 +55,15 @@ class Net(nn.Module):
                                                                                    loss.data.item()))
         if save:
             # save trained net
-            torch.save(net.state_dict(), '../nets/MNIST_MLP(40, 20, 10).pt')
+            torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 10)_trained.pt')
 
-    def test_net(self):
+    def test_net(self, criterion, testloader, device):
         # test the net
         test_loss = 0
         correct = 0
         for data, target in testloader:
             data, target = Variable(data), Variable(target)
-            if dev == "GPU":
-                data, target = data.to(device), target.to(device)
+            data, target = data.to(device), target.to(device)
             data = data.view(-1, 28 * 28)
             net_out = self(data)
             # sum up batch loss
@@ -70,10 +71,12 @@ class Net(nn.Module):
             pred = net_out.data.max(1)[1]  # get the index of the max log-probability
             correct += pred.eq(target.data).sum()
         test_loss /= len(testloader.dataset)
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(test_loss, correct,
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(test_loss, correct,
                                                                                      len(testloader.dataset),
-                                                                                     100. * correct / len(
+                                                                                     100. * correct.item() / len(
                                                                                          testloader.dataset)))
+        acc = 100. * correct.item() / len(testloader.dataset)
+        return acc
 
 
 def imshow(img):
@@ -105,6 +108,7 @@ if __name__ == "__main__":
     # build net
     net = Net()
     if dev == "GPU":
+        print("sending net to GPU")
         net.to(device)
     criterion = nn.NLLLoss()  # nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -121,10 +125,10 @@ if __name__ == "__main__":
         plot_data()
 
     if train:
-        net.train_net(epochs=10)
+        net.train_net(criterion, optimizer, trainloader, epochs=100, device=device)
     else:
-        net.load_state_dict(torch.load('../nets/MNIST_MLP(40, 20, 10).pt'))
+        net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10).pt'))
         net.eval()
 
     if test:
-        net.test_net()
+        net.test_net(criterion, testloader, device)
