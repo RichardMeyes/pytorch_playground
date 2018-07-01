@@ -74,9 +74,26 @@ def calc_unit_struct_metric(weights_trained, weights_untrained):
     return unit_struct, pixel_metrics
 
 
+def plot_acc_metric_corr(metrics, accuracies):
+    accuracies = accuracies[np.argsort(metrics)]
+    metrics = np.sort(metrics)
+    r, p = spst.pearsonr(metrics, accuracies)
+    fig = plt.figure(figsize=(20, 10))
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05, wspace=0.2, hspace=0.5)
+    ax = fig.add_subplot(111)
+    ax.semilogx(metrics, accuracies, lw=1, marker='o', label="r: {0:.2f}, p: {1:.2f}".format(r, p))
+    ax.set_xlabel("metric")
+    ax.set_ylabel("accuracy")
+    ax.legend()
+    plt.savefig("../plots/acc_metric_corr.png")
+
+
 if __name__ == "__main__":
 
     device = torch.device("cpu:0")
+    """ setting flags """
+    plot_w = False
+
 
     # load nets and weights
     net_trained = Net()
@@ -100,15 +117,18 @@ if __name__ == "__main__":
     weights = net_trained.fc1.weight.data.numpy()
     scale = (np.min(weights), np.max(weights))
     acc_full = net_trained.test_net(criterion, testloader, device)
-    plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title="trained accuracy: {0}%".format(acc_full), name="full")
+    if plot_w:
+        plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title="trained accuracy: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
     weights = net_untrained.fc1.weight.data.numpy()
     acc_untrained = net_untrained.test_net(criterion, testloader, device)
-    plot_weights(weights, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
-                 title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
+    if plot_w:
+        plot_weights(weights, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
+                     title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
 
     # modify net, test accuracy and plot weights
+    accuracies = np.zeros(20)
     for i_unit in range(20):
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
@@ -116,7 +136,11 @@ if __name__ == "__main__":
         # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
         weights = net_trained.fc1.weight.data.numpy()
         acc = net_trained.test_net(criterion, testloader, device)
-        plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
-                     title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
-                     name="knockout_" + str(i_unit+1))
+        accuracies[i_unit] = acc
+        if plot_w:
+            plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
+                         title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
+                         name="knockout_" + str(i_unit+1))
 
+    # plot correlation of accuracy drop with metrics
+    plot_acc_metric_corr(unit_struct[:, 3], accuracies)
