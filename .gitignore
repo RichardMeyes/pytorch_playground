@@ -1,6 +1,9 @@
 # PyCharm project folder
 .idea/
 
+# caching files
+__pycache__
+
 # data folder and plotting folder
 MNIST/data/
 MNIST/plots/
