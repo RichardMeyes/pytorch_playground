@@ -15,7 +15,7 @@ from train_test_net import Net
 
 def plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title, name):
     fig = plt.figure(figsize=(20, 10))
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05, wspace=0.2, hspace=0.5)
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.05, wspace=0.2, hspace=0.5)
     for i in range(20):
         ax = fig.add_subplot(4, 5, i+1)
         i_weights = weights[i].reshape(28, 28)
@@ -78,13 +78,15 @@ def plot_acc_metric_corr(metrics, accuracies):
     accuracies = accuracies[np.argsort(metrics)]
     metrics = np.sort(metrics)
     r, p = spst.pearsonr(metrics, accuracies)
-    fig = plt.figure(figsize=(20, 10))
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05, wspace=0.2, hspace=0.5)
+    r2, p2 = spst.spearmanr(metrics, accuracies)
+    fig = plt.figure(figsize=(8, 6))
+    fig.subplots_adjust(left=0.08, right=0.95, top=0.96, bottom=0.10, wspace=0.2, hspace=0.2)
     ax = fig.add_subplot(111)
-    ax.semilogx(metrics, accuracies, lw=1, marker='o', label="r: {0:.2f}, p: {1:.2f}".format(r, p))
+    ax.semilogx(metrics, accuracies, lw=1, marker='o', label="pearson - r: {0:.2f}, p: {1:.2e} \n"
+                                                             "spearman - r: {0:.2f}, p: {1:.2e}".format(r2, p2))
     ax.set_xlabel("metric")
     ax.set_ylabel("accuracy")
-    ax.legend()
+    ax.legend(loc=2)
     plt.savefig("../plots/acc_metric_corr.png")
 
 
@@ -93,7 +95,6 @@ if __name__ == "__main__":
     device = torch.device("cpu:0")
     """ setting flags """
     plot_w = False
-
 
     # load nets and weights
     net_trained = Net()
@@ -104,8 +105,10 @@ if __name__ == "__main__":
     net_untrained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_untrained.pt'))
     net_untrained.eval()
 
-    unit_struct_untrained, pixel_metrics_untrained = calc_unit_struct_metric(net_untrained.fc1.weight.data.numpy()+0.001, net_untrained.fc1.weight.data.numpy())
-    unit_struct, pixel_metrics = calc_unit_struct_metric(net_trained.fc1.weight.data.numpy(), net_untrained.fc1.weight.data.numpy())
+    unit_struct_untrained, pixel_metrics_untrained = calc_unit_struct_metric(net_untrained.fc1.weight.data.numpy()+0.001,
+                                                                             net_untrained.fc1.weight.data.numpy())
+    unit_struct, pixel_metrics = calc_unit_struct_metric(net_trained.fc1.weight.data.numpy(),
+                                                         net_untrained.fc1.weight.data.numpy())
 
     # load data and test network
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -118,7 +121,8 @@ if __name__ == "__main__":
     scale = (np.min(weights), np.max(weights))
     acc_full = net_trained.test_net(criterion, testloader, device)
     if plot_w:
-        plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title="trained accuracy: {0}%".format(acc_full), name="full")
+        plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
+                     title="trained accuracy: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
     weights = net_untrained.fc1.weight.data.numpy()
