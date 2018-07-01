@@ -15,14 +15,16 @@ from train_test_net import Net
 
 def plot_weights(weights, scale, unit_struct, title, name):
     fig = plt.figure(figsize=(20, 10))
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05, wspace=0.2, hspace=0.4)
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.92, bottom=0.05, wspace=0.2, hspace=0.5)
     for i in range(20):
         ax = fig.add_subplot(4, 5, i+1)
         i_weights = weights[i].reshape(28, 28)
         ax.matshow(i_weights, cmap='seismic', vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
         ax.set_xticks(())
         ax.set_yticks(())
-        ax.set_title("T: {0:.2e}, p: {1:.2e}".format(int(unit_struct[i, 0]), unit_struct[i, 1]))
+        ax.set_title("T: {0:.2e}, p: {1:.2e}".format(int(unit_struct[i, 2]), unit_struct[i, 3]))
+        ax.set_xlabel("mean: {0:.2f}, std: {1:.4f}".format(int(unit_struct[i, 0]), unit_struct[i, 1]))
+        ax.set_ylabel("pixel metric: {0:.4f}".format(unit_struct[i, 4]))
     plt.suptitle("{0}".format(title))
     plt.savefig("../plots/weights_" + name)
     plt.close()
@@ -30,10 +32,43 @@ def plot_weights(weights, scale, unit_struct, title, name):
 
 
 def calc_unit_struct_metric(weights_trained, weights_untrained):
-    unit_struct = np.zeros((len(weights_trained), 2))
+
+    def pixel_diff_metric(weights):
+        weights = weights.reshape(28, 28)
+        pixel_metrics = np.zeros((28, 28))
+        for i_row in range(len(weights)):
+            for i_col in range(len(weights)):
+                pixel_value = weights[i_row, i_col]
+                if i_row in [0, 27] and i_col in [0, 27]:  # corners
+                    if i_row == 0 and i_col == 0:
+                        neighbors = weights[:2, :2]
+                    elif i_row == 0 and i_col == 27:
+                        neighbors = weights[:2, 26:]
+                    elif i_row == 27 and i_col == 0:
+                        neighbors = weights[26:, :2]
+                    elif i_row == 27 and i_col == 27:
+                        neighbors = weights[26:, 26:]
+                elif i_row in [0, 27] or i_col in [0, 27]:  # edges
+                    if i_row == 0:
+                        neighbors = weights[:2, i_col-1:i_col+2]
+                    elif i_row == 27:
+                        neighbors = weights[26:, i_col-1:i_col+2]
+                    elif i_col == 0:
+                        neighbors = weights[i_row-1:i_row+2, :2]
+                    elif i_col == 27:
+                        neighbors = weights[i_row:i_row+2, 26:]
+                else:  # neither corners nor edges but in the middle
+                    neighbors = weights[i_row-1:i_row+2, i_col-1:i_col+2]
+                pixel_metric = np.sum(np.abs(neighbors - pixel_value))/(len(neighbors)-1)
+                pixel_metrics[i_row, i_col] = pixel_metric
+        return pixel_metrics
+
+    unit_struct = np.zeros((len(weights_trained), 5))
     for i_unit in range(len(weights_trained)):
-        s, p = spst.wilcoxon(weights_trained[i_unit], weights_untrained[i_unit])
-        unit_struct[i_unit] = s, p
+        mean, std = np.mean(weights_trained[i_unit]), np.std(weights_trained[i_unit])
+        s, p = spst.mannwhitneyu(weights_trained[i_unit], weights_untrained[i_unit])
+        pixel_metrics = pixel_diff_metric(weights_trained[i_unit])
+        unit_struct[i_unit] = mean, std, s, p, np.sum(pixel_metrics)
     return unit_struct
 
 
