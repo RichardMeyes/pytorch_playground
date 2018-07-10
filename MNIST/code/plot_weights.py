@@ -4,11 +4,8 @@ import scipy.stats as spst
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from torch.autograd import Variable
 
 from train_test_net import Net
 
