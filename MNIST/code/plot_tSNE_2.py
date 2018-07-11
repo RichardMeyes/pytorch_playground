@@ -8,9 +8,6 @@ from matplotlib.colors import ListedColormap
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from MulticoreTSNE import MulticoreTSNE as TSNE
 
 
 def plot_single_digits(trainloader):
@@ -21,30 +18,11 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(testloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=40, n_iter=10000, n_iter_without_progress=250,
-                init='random', random_state=None, verbose=4, n_jobs=12)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
     Y = testloader.dataset.test_labels.numpy()[:num_samples]
-    X = X_img.reshape(-1, X_img.shape[1]*X_img.shape[2])  # flattening out squared images for tSNE
 
-    print("fitting PCA...")
-    t0 = time.time()
-    pca = PCA(n_components=30)
-    X = pca.fit_transform(X)
-    t1 = time.time()
-    print("done! {0:.2f} seconds".format(t1 - t0))
-
-    print("fitting tSNE...")
-    t0 = time.time()
-    X_tsne = tsne.fit_transform(X)
-    t1 = time.time()
-    print("done! {0:.2f} seconds".format(t1 - t0))
-
-    # scaling
-    x_min, x_max = np.min(X_tsne, 0), np.max(X_tsne, 0)
-    X_tsne = (X_tsne - x_min) / (x_max - x_min)
-
-    pickle.dump(X_tsne, open("../data/tSNE/X_tSNE_{0}.p".format(num_samples), "wb"))
+    print("loading fitted tSNE coordinates...")
+    X_tsne = pickle.load(open("../data/tSNE/X_tSNE_{0}.p".format(num_samples), "rb"))
 
     print("plotting tSNE...")
     t0 = time.time()
@@ -52,13 +30,28 @@ def plot_tSNE(testloader, num_samples):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
 
-    custom_cmap = plt.cm.Greys
-    custom_cmap_colors = custom_cmap(np.arange(custom_cmap.N))
-    custom_cmap_colors[:, -1] = np.linspace(0, 1, custom_cmap.N)
-    custom_cmap = ListedColormap(custom_cmap_colors)
+    cmaps = [plt.cm.bwr,
+             plt.cm.bwr,
+             plt.cm.Wistia,
+             plt.cm.Greys,
+             plt.cm.cool,
+             plt.cm.Purples,
+             plt.cm.coolwarm,
+             plt.cm.bwr,
+             plt.cm.PiYG,
+             plt.cm.cool]
+
 
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
+            # create colormap
+            custom_cmap = cmaps[Y[i_digit]]
+            custom_cmap_colors = custom_cmap(np.arange(custom_cmap.N))
+            if Y[i_digit] in [7, 6, 9]:
+                custom_cmap_colors = custom_cmap_colors[::-1]
+            custom_cmap_colors[:, -1] = np.linspace(0, 1, custom_cmap.N)
+            custom_cmap = ListedColormap(custom_cmap_colors)
+
             # correct color for plotting
             X_img[i_digit][X_img[i_digit, :, :] > 10] = 255
             X_img[i_digit][X_img[i_digit, :, :] <= 10] = 0
@@ -69,13 +62,16 @@ def plot_tSNE(testloader, num_samples):
                                                 frameon=False,
                                                 pad=0)
             ax.add_artist(imagebox)
-    ax.set_title("KL: {}".format(tsne.kl_divergence_))
-    plt.savefig("../plots/MNIST_tSNE_{0}.png".format(num_samples), dpi=1200)
+    plt.savefig("../plots/MNIST_tSNE_{0}_colored.png".format(num_samples), dpi=1200)
+    # plt.show()
     t1 = time.time()
     print("done! {0:.2f} seconds".format(t1 - t0))
 
 
 if __name__ == "__main__":
+
+    """ setting flags """
+    tSNE_calc = False
 
     # load data
     transform = transforms.Compose([transforms.ToTensor()])
