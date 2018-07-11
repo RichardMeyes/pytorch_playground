@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import offsetbox
 from sklearn.manifold import TSNE
 
 import torch
@@ -15,11 +16,11 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(trainloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=10, n_iter=10000, n_iter_without_progress=500,
+    tsne = TSNE(n_components=2, perplexity=30, n_iter=5000, n_iter_without_progress=500,
                 init='pca', random_state=1337)
-    X = trainloader.dataset.train_data.numpy()[:num_samples]
+    X_img = trainloader.dataset.train_data.numpy()[:num_samples]
     Y = trainloader.dataset.train_labels.numpy()[:num_samples]
-    X = X.reshape(-1, X.shape[1]*X.shape[2])  # flattening out squared images for tSNE
+    X = X_img.reshape(-1, X_img.shape[1]*X_img.shape[2])  # flattening out squared images for tSNE
     X_tsne = tsne.fit_transform(X)
 
     # scaling
@@ -28,8 +29,12 @@ def plot_tSNE(trainloader, num_samples):
 
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
-    for i_digit in range(num_samples):
-        ax.text(X_tsne[i_digit, 0], X_tsne[i_digit, 1], str(Y[i_digit]), color='r')
+    if hasattr(offsetbox, 'AnnotationBbox'):
+        for i_digit in range(num_samples):
+            imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(X_img[i_digit], cmap='Greys', zoom=0.25),
+                                                X_tsne[i_digit],
+                                                frameon=False)
+            ax.add_artist(imagebox)
     ax.set_title("KL: {}".format(tsne.kl_divergence_))
     plt.show()
 
