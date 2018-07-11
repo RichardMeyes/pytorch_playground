@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
@@ -16,7 +17,7 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(trainloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=30, n_iter=5000, n_iter_without_progress=500,
+    tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, n_iter_without_progress=250,
                 init='pca', random_state=1337)
     X_img = trainloader.dataset.train_data.numpy()[:num_samples]
     Y = trainloader.dataset.train_labels.numpy()[:num_samples]
@@ -36,7 +37,8 @@ def plot_tSNE(trainloader, num_samples):
                                                 frameon=False)
             ax.add_artist(imagebox)
     ax.set_title("KL: {}".format(tsne.kl_divergence_))
-    plt.show()
+    plt.savefig("../plots/MNIST_tSNE.png")
+    # plt.show()
 
 
 if __name__ == "__main__":
@@ -50,4 +52,8 @@ if __name__ == "__main__":
     classes = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
     # plot_single_digits(trainloader)
+    print("plotting tSNE...")
+    t0 = time.time()
     plot_tSNE(trainloader, num_samples=600)
+    t1 = time.time()
+    print("done! {0:.2f} seconds".format(t1 - t0))
