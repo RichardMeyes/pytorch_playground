@@ -30,6 +30,7 @@ def plot_tSNE(testloader, num_samples):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
 
+    # define class colors
     cmaps = [plt.cm.bwr,
              plt.cm.bwr,
              plt.cm.Wistia,
@@ -40,7 +41,6 @@ def plot_tSNE(testloader, num_samples):
              plt.cm.bwr,
              plt.cm.PiYG,
              plt.cm.cool]
-
 
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
@@ -69,9 +69,6 @@ def plot_tSNE(testloader, num_samples):
 
 
 if __name__ == "__main__":
-
-    """ setting flags """
-    tSNE_calc = False
 
     # load data
     transform = transforms.Compose([transforms.ToTensor()])
