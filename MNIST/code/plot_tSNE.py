@@ -9,6 +9,8 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from sklearn.manifold import TSNE
+from MulticoreTSNE import MulticoreTSNE as TSNE
+
 
 def plot_single_digits(trainloader):
     for img in trainloader.dataset.train_data:
@@ -18,8 +20,8 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(testloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, n_iter_without_progress=250,
-                init='pca', random_state=None, verbose=4)
+    tsne = TSNE(n_components=2, perplexity=40, n_iter=20000, n_iter_without_progress=250,
+                init='random', random_state=None, verbose=4, n_jobs=8)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
     Y = testloader.dataset.test_labels.numpy()[:num_samples]
     X = X_img.reshape(-1, X_img.shape[1]*X_img.shape[2])  # flattening out squared images for tSNE
@@ -60,7 +62,7 @@ def plot_tSNE(testloader, num_samples):
                                                 pad=0)
             ax.add_artist(imagebox)
     ax.set_title("KL: {}".format(tsne.kl_divergence_))
-    plt.savefig("../plots/MNIST_tSNE.png")
+    plt.savefig("../plots/MNIST_tSNE.png", dpi=1200)
     # plt.show()
     t1 = time.time()
     print("done! {0:.2f} seconds".format(t1 - t0))
@@ -78,4 +80,4 @@ if __name__ == "__main__":
     num_digits = testloader.dataset.test_labels.size()
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, num_samples=600)
+    plot_tSNE(testloader, num_samples=6000)
