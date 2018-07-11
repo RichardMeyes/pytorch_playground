@@ -1,3 +1,4 @@
+import pickle
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(testloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=30, n_iter=5000, n_iter_without_progress=250,
+    tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, n_iter_without_progress=250,
                 init='pca', random_state=None, verbose=4)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
     Y = testloader.dataset.test_labels.numpy()[:num_samples]
@@ -32,6 +33,8 @@ def plot_tSNE(testloader, num_samples):
     # scaling
     x_min, x_max = np.min(X_tsne, 0), np.max(X_tsne, 0)
     X_tsne = (X_tsne - x_min) / (x_max - x_min)
+
+    pickle.dump(X_tsne, open("../data/tSNE/X_tSNE.p", "wb"))
 
     print("plotting tSNE...")
     t0 = time.time()
@@ -63,7 +66,6 @@ def plot_tSNE(testloader, num_samples):
     print("done! {0:.2f} seconds".format(t1 - t0))
 
 
-
 if __name__ == "__main__":
 
     # load data
@@ -76,4 +78,4 @@ if __name__ == "__main__":
     num_digits = testloader.dataset.test_labels.size()
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, num_samples=6000)
+    plot_tSNE(testloader, num_samples=600)
