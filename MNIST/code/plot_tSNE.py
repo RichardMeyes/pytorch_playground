@@ -2,12 +2,12 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
-from sklearn.manifold import TSNE
+from matplotlib.colors import ListedColormap
 
 import torch
 import torchvision
 import torchvision.transforms as transforms
-
+from sklearn.manifold import TSNE
 
 def plot_single_digits(trainloader):
     for img in trainloader.dataset.train_data:
@@ -17,7 +17,7 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(trainloader, num_samples):
-    tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, n_iter_without_progress=250,
+    tsne = TSNE(n_components=2, perplexity=30, n_iter=5000, n_iter_without_progress=250,
                 init='pca', random_state=1337)
     X_img = trainloader.dataset.train_data.numpy()[:num_samples]
     Y = trainloader.dataset.train_labels.numpy()[:num_samples]
@@ -30,11 +30,23 @@ def plot_tSNE(trainloader, num_samples):
 
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
+
+    custom_cmap = plt.cm.Greys
+    custom_cmap_colors = custom_cmap(np.arange(custom_cmap.N))
+    custom_cmap_colors[:, -1] = np.linspace(0, 1, custom_cmap.N)
+    custom_cmap = ListedColormap(custom_cmap_colors)
+
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
-            imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(X_img[i_digit], cmap='Greys', zoom=0.25),
+            # correct color for plotting
+            X_img[i_digit][X_img[i_digit, :, :] > 25] = 255
+            X_img[i_digit][X_img[i_digit, :, :] <= 25] = 0
+            imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(X_img[i_digit],
+                                                                      cmap=custom_cmap,
+                                                                      zoom=0.25),
                                                 X_tsne[i_digit],
-                                                frameon=False)
+                                                frameon=False,
+                                                pad=0)
             ax.add_artist(imagebox)
     ax.set_title("KL: {}".format(tsne.kl_divergence_))
     plt.savefig("../plots/MNIST_tSNE.png")
