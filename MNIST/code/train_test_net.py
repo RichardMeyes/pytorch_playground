@@ -11,6 +11,13 @@ from torch.autograd import Variable
 
 
 def plot_data():
+
+    def imshow(img):
+        img = img / 2 + 0.5  # un-normalize
+        npimg = img.numpy()
+        plt.imshow(np.transpose(npimg, (1, 2, 0)))
+        plt.show()
+
     # plot some data
     dataiter = iter(trainloader)
     images, labels = dataiter.next()
@@ -58,6 +65,8 @@ class Net(nn.Module):
             torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 10)_trained.pt')
 
     def test_net(self, criterion, testloader, device):
+        """ ToDo: besides total accuracy, calculate class specific accuracy and return a label for each image
+            ToDO: that indicates whether this image was classified correctly or not """
         # test the net
         test_loss = 0
         correct = 0
@@ -77,13 +86,6 @@ class Net(nn.Module):
                                                                                          testloader.dataset)))
         acc = 100. * correct.item() / len(testloader.dataset)
         return acc
-
-
-def imshow(img):
-    img = img / 2 + 0.5  # un-normalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
 
 
 if __name__ == "__main__":
