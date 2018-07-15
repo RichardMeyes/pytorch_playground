@@ -147,6 +147,33 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     print("done! {0:.2f} seconds".format(t1 - t0))
 
 
+def plot_unit_class_acc(acc, acc_class, title, name, color='b'):
+    fig = plt.figure(figsize=(10, 10))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
+    ax = fig.add_subplot(111)
+
+    bar_pos = np.linspace(-1, 9, 11, endpoint=True)
+    bar_pos[0] -= 0.8
+    bar_widths = np.zeros(11) + 0.8
+    bar_widths[0] += 0.4
+    bar_heights = np.insert(acc_class*100, 0, acc)
+    ax.bar(x=bar_pos, align='center', height=bar_heights, width=bar_widths,
+           color=color, edgecolor='k', lw=2)
+    for i, val in enumerate(bar_heights):
+        ax.text(bar_pos[i]-0.4, val + 1, "{0:.2f}%".format(val), color='k', fontweight='bold')
+    ax.axvline(x=-0.8, lw=3, ls='--', c='k')
+    ax.axhline(y=acc, ls='--', lw=2, c='r')
+    ax.set_xlabel("class label")
+    ax.set_ylabel("accuracy [%]")
+    ax.set_xticks(bar_pos)
+    labels = ["total"] + np.arange(0, 10, 1).tolist()
+    ax.set_xticklabels(labels)
+    ax.set_title(title)
+    ax.set_ylim(-10, 110)
+    plt.savefig("../plots/unit_acc_" + name)
+    # plt.show()
+
+
 if __name__ == "__main__":
 
     # setting rng seed for reproducability
@@ -156,8 +183,9 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
     plot_w = False
-    plot_tSNE_ = True
+    plot_tSNE_ = False
     plot_corr = False
+    plot_unit_acc = True
 
     # load nets and weights
     net_trained = Net()
@@ -185,7 +213,7 @@ if __name__ == "__main__":
     # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
     weights = net_trained.fc1.weight.data.cpu().numpy()
     scale = (np.min(weights), np.max(weights))
-    acc_full, labels = net_trained.test_net(criterion, testloader, device)
+    acc_full, labels, acc_class_full = net_trained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
@@ -193,10 +221,12 @@ if __name__ == "__main__":
         plot_tSNE(testloader, labels, num_samples=10000, name="", title="accuray: {0}%".format(acc_full))
         labels[labels == 0] = -1
         plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
+    if plot_unit_acc:
+        plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
     weights = net_untrained.fc1.weight.data.cpu().numpy()
-    acc_untrained, _ = net_untrained.test_net(criterion, testloader, device)
+    acc_untrained, _, _ = net_untrained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
@@ -209,7 +239,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
         weights = net_trained.fc1.weight.data.cpu().numpy()
-        acc, labels_ko = net_trained.test_net(criterion, testloader, device)
+        acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
         if plot_w:
             plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
@@ -220,6 +250,15 @@ if __name__ == "__main__":
             plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1),
                       title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                           acc_full - acc))
+        if plot_unit_acc:
+            # ToDo: combine blue and red barplots in a single plot showing the delta acc on top of the remaining acc
+            plot_unit_class_acc(acc, acc_class,
+                                title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+                                name="knockout_{0}".format(i_unit + 1))
+            plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
+                                title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+                                color='r', name="knockout_{0}_delta".format(i_unit+1))
+
     if plot_corr:
         # plot correlation of accuracy drop with metrics
         plot_acc_metric_corr(unit_struct[:, 3], accuracies)

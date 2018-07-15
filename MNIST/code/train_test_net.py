@@ -68,8 +68,8 @@ class Net(nn.Module):
         # test the net
         test_loss = 0
         correct = 0
+        correct_class = np.zeros(10)
         correct_labels = np.array([], dtype=int)
-        correct_labels_per_class = np.array([], dtype=int)
         for i_batch, (data, target) in enumerate(testloader):
             data, target = Variable(data), Variable(target)
             data, target = data.to(device), target.to(device)
@@ -80,6 +80,9 @@ class Net(nn.Module):
             pred = net_out.data.max(1)[1]  # get the index of the max log-probability
             batch_labels = pred.eq(target.data)
             correct_labels = np.append(correct_labels, batch_labels)
+            for i_label in range(len(target)):
+                label = target[i_label].item()
+                correct_class[label] += batch_labels[i_label].item()
             correct += batch_labels.sum()
         test_loss /= len(testloader.dataset)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(test_loss, correct,
@@ -87,7 +90,12 @@ class Net(nn.Module):
                                                                                      100. * correct.item() / len(
                                                                                          testloader.dataset)))
         acc = 100. * correct.item() / len(testloader.dataset)
-        return acc, correct_labels
+        # calculate class_acc
+        acc_class = np.zeros(10)
+        for i_label in range(10):
+            num = (testloader.dataset.test_labels.numpy() == i_label).sum()
+            acc_class[i_label] = correct_class[i_label]/num
+        return acc, correct_labels, acc_class
 
 
 if __name__ == "__main__":
@@ -135,6 +143,8 @@ if __name__ == "__main__":
         net.eval()
 
     if test:
-        acc, correct_labels = net.test_net(criterion, testloader, device)
+        acc, correct_labels, acc_class = net.test_net(criterion, testloader, device)
         print(acc)
         print(correct_labels)
+        print(acc_class)
+        print(acc_class.mean())  # NOTE: This does not equal to the calculated total accuracy as the distribution of labels is not equal in the test set!
