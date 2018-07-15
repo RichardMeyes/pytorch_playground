@@ -9,9 +9,6 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from MulticoreTSNE import MulticoreTSNE as TSNE
 
 from train_test_net import Net
 
@@ -24,8 +21,6 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
-    tsne = TSNE(n_components=2, perplexity=40, n_iter=10000, n_iter_without_progress=250,
-                init='random', random_state=None, verbose=4, n_jobs=12)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
 
     print("loading fitted tSNE coordinates...")
@@ -99,7 +94,6 @@ if __name__ == "__main__":
     net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
     net_trained.eval()
     full_acc, labels = net_trained.test_net(criterion, testloader, device)
-    print(full_acc)
 
     # plot_single_digits(trainloader)
     labels[labels == 0] = -1
@@ -112,7 +106,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         acc, labels_ko = net_trained.test_net(criterion, testloader, device)
 
-        # labels_ko[labels == -1] = -1
+        labels_ko[labels == -1] = -1
         plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit+1),
                   title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                       full_acc - acc))

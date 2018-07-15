@@ -1,5 +1,10 @@
+import pickle
+import time
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import offsetbox
+from matplotlib.colors import ListedColormap
+
 import scipy.stats as spst
 
 import torch
@@ -87,6 +92,59 @@ def plot_acc_metric_corr(metrics, accuracies):
     plt.savefig("../plots/acc_metric_corr.png")
 
 
+def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
+    X_img = testloader.dataset.test_data.numpy()[:num_samples]
+
+    print("loading fitted tSNE coordinates...")
+    X_tsne = pickle.load(open("../data/tSNE/X_tSNE_10000.p".format(num_samples), "rb"))
+
+    print("plotting tSNE...")
+    # scaling
+    x_min, x_max = np.min(X_tsne, 0), np.max(X_tsne, 0)
+    X_tsne = (X_tsne - x_min) / (x_max - x_min)
+    t0 = time.time()
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111)
+
+    # Define custom color maps
+    custom_cmap_black = plt.cm.Greys
+    custom_cmap_black_colors = custom_cmap_black(np.arange(custom_cmap_black.N))
+    custom_cmap_black_colors[:, -1] = np.linspace(0, 1, custom_cmap_black.N)
+    custom_cmap_black = ListedColormap(custom_cmap_black_colors)
+
+    custom_cmap_red = plt.cm.bwr
+    custom_cmap_red_colors = custom_cmap_red(np.arange(custom_cmap_red.N))
+    custom_cmap_red_colors[:, -1] = np.linspace(0, 1, custom_cmap_red.N)
+    custom_cmap_red = ListedColormap(custom_cmap_red_colors)
+
+    custom_cmap_white = plt.cm.Greys
+    custom_cmap_white_colors = custom_cmap_white(np.arange(custom_cmap_white.N))
+    custom_cmap_white_colors[:, -1] = 0
+    custom_cmap_white = ListedColormap(custom_cmap_white_colors)
+
+    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_white]
+
+    if hasattr(offsetbox, 'AnnotationBbox'):
+        for i_digit in range(num_samples):
+            # correct color for plotting
+            X_img[i_digit][X_img[i_digit, :, :] > 10] = 255
+            X_img[i_digit][X_img[i_digit, :, :] <= 10] = 0
+            imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(X_img[i_digit],
+                                                                      cmap=color_maps[labels[i_digit]],
+                                                                      zoom=0.25),
+                                                X_tsne[i_digit],
+                                                frameon=False,
+                                                pad=0)
+            ax.add_artist(imagebox)
+
+    ax.set_title(title)
+    # save figure
+    plt.savefig("../plots/MNIST_tSNE_{0}_{1}.png".format(num_samples, name), dpi=1200)
+    t1 = time.time()
+    print("done! {0:.2f} seconds".format(t1 - t0))
+
+
 if __name__ == "__main__":
 
     # setting rng seed for reproducability
@@ -95,7 +153,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
+    plot_w = True
+    plot_tSNE_ = True
 
     # load nets and weights
     net_trained = Net()
@@ -123,10 +182,13 @@ if __name__ == "__main__":
     # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
     weights = net_trained.fc1.weight.data.cpu().numpy()
     scale = (np.min(weights), np.max(weights))
-    acc_full, _ = net_trained.test_net(criterion, testloader, device)
+    acc_full, labels = net_trained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
+    if plot_tSNE_:
+        labels[labels == 0] = -1
+        plot_tSNE(testloader, labels, num_samples=10000, title="accuray: {0}%".format(acc_full))
 
     # plot untrained network weights
     weights = net_untrained.fc1.weight.data.cpu().numpy()
@@ -143,12 +205,17 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
         weights = net_trained.fc1.weight.data.cpu().numpy()
-        acc, _ = net_trained.test_net(criterion, testloader, device)
+        acc, labels_ko = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
         if plot_w:
             plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                          title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
                          name="knockout_" + str(i_unit+1))
+        if plot_tSNE_:
+            labels_ko[labels == -1] = -1
+            plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1),
+                      title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
+                                                                                                          acc_full - acc))
 
     # plot correlation of accuracy drop with metrics
     plot_acc_metric_corr(unit_struct[:, 3], accuracies)
