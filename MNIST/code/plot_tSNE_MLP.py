@@ -23,7 +23,7 @@ def plot_single_digits(trainloader):
         plt.show()
 
 
-def plot_tSNE(testloader, labels, num_samples, clean=False):
+def plot_tSNE(testloader, labels, num_samples):
     tsne = TSNE(n_components=2, perplexity=40, n_iter=10000, n_iter_without_progress=250,
                 init='random', random_state=None, verbose=4, n_jobs=12)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
@@ -49,11 +49,14 @@ def plot_tSNE(testloader, labels, num_samples, clean=False):
     custom_cmap_red = plt.cm.bwr
     custom_cmap_red_colors = custom_cmap_red(np.arange(custom_cmap_red.N))
     custom_cmap_red_colors[:, -1] = np.linspace(0, 1, custom_cmap_red.N)
-    if clean:
-        custom_cmap_red_colors[:, -1] = 0  # makes everything transparent so the digits wont be visible in the plot
     custom_cmap_red = ListedColormap(custom_cmap_red_colors)
 
-    color_maps = [custom_cmap_red, custom_cmap_black]
+    custom_cmap_white = plt.cm.Greys
+    custom_cmap_white_colors = custom_cmap_white(np.arange(custom_cmap_white.N))
+    custom_cmap_white_colors[:, -1] = 0
+    custom_cmap_white = ListedColormap(custom_cmap_white_colors)
+
+    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_white]
 
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
@@ -70,11 +73,7 @@ def plot_tSNE(testloader, labels, num_samples, clean=False):
 
     ax.set_title("KL: {}".format(tsne.kl_divergence_))
     # save figure
-    if not clean:
-        fig_path = "../plots/MNIST_tSNE_{0}.png".format(num_samples)
-    else:
-        fig_path = "../plots/MNIST_tSNE_{0}_clean.png".format(num_samples)
-    plt.savefig(fig_path, dpi=1200)
+    plt.savefig("../plots/MNIST_tSNE_{0}_clean.png".format(num_samples), dpi=1200)
     t1 = time.time()
     print("done! {0:.2f} seconds".format(t1 - t0))
 
@@ -101,4 +100,6 @@ if __name__ == "__main__":
     acc, labels = net_trained.test_net(criterion, testloader, device)
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, labels, num_samples=10000, clean=True)
+    # cleaning plot from unrecognized digits
+    labels[labels == 0] = -1
+    plot_tSNE(testloader, labels, num_samples=10000)
