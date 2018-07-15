@@ -23,7 +23,7 @@ def plot_single_digits(trainloader):
         plt.show()
 
 
-def plot_tSNE(testloader, labels, num_samples, name=None):
+def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     tsne = TSNE(n_components=2, perplexity=40, n_iter=10000, n_iter_without_progress=250,
                 init='random', random_state=None, verbose=4, n_jobs=12)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
@@ -71,7 +71,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None):
                                                 pad=0)
             ax.add_artist(imagebox)
 
-    ax.set_title("KL: {}".format(tsne.kl_divergence_))
+    ax.set_title(title)
     # save figure
     plt.savefig("../plots/MNIST_tSNE_{0}_{1}.png".format(num_samples, name), dpi=1200)
     t1 = time.time()
@@ -79,14 +79,15 @@ def plot_tSNE(testloader, labels, num_samples, name=None):
 
 
 if __name__ == "__main__":
+    # setting rng seed for reproducability
+    torch.manual_seed(1337)
+    torch.cuda.manual_seed_all(1337)
 
     # set device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # load data
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    trainset = torchvision.datasets.MNIST(root='../data', train=True, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=4)
     testset = torchvision.datasets.MNIST(root='../data', train=False, download=True, transform=transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
     classes = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
@@ -97,11 +98,12 @@ if __name__ == "__main__":
     criterion = nn.NLLLoss()  # nn.CrossEntropyLoss()
     net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
     net_trained.eval()
-    acc, labels = net_trained.test_net(criterion, testloader, device)
+    full_acc, labels = net_trained.test_net(criterion, testloader, device)
+    print(full_acc)
 
     # plot_single_digits(trainloader)
     labels[labels == 0] = -1
-    plot_tSNE(testloader, labels, num_samples=10000)
+    plot_tSNE(testloader, labels, num_samples=10000, title="accuray: {0}%".format(full_acc))
 
     # plot tSNE for knocked out units
     for i_unit in range(20):
@@ -110,5 +112,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         acc, labels_ko = net_trained.test_net(criterion, testloader, device)
 
-        labels_ko[labels == -1] = -1
-        plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit+1))
+        # labels_ko[labels == -1] = -1
+        plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit+1),
+                  title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
+                                                                                                      full_acc - acc))

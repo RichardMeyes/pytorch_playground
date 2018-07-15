@@ -89,41 +89,48 @@ def plot_acc_metric_corr(metrics, accuracies):
 
 if __name__ == "__main__":
 
-    device = torch.device("cpu:0")
+    # setting rng seed for reproducability
+    torch.manual_seed(1337)
+    torch.cuda.manual_seed_all(1337)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
     plot_w = False
 
     # load nets and weights
     net_trained = Net()
     net_untrained = Net()
+    # send nets to GPU
+    for net in [net_trained, net_untrained]:
+        net.to(device)
     criterion = nn.NLLLoss()  # nn.CrossEntropyLoss()
     net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
     net_trained.eval()
     net_untrained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_untrained.pt'))
     net_untrained.eval()
 
-    unit_struct_untrained, pixel_metrics_untrained = calc_unit_struct_metric(net_untrained.fc1.weight.data.numpy()+0.001,
-                                                                             net_untrained.fc1.weight.data.numpy())
-    unit_struct, pixel_metrics = calc_unit_struct_metric(net_trained.fc1.weight.data.numpy(),
-                                                         net_untrained.fc1.weight.data.numpy())
+    unit_struct_untrained, pixel_metrics_untrained = calc_unit_struct_metric(net_untrained.fc1.weight.data.cpu().numpy()+0.001,
+                                                                             net_untrained.fc1.weight.data.cpu().numpy())
+    unit_struct, pixel_metrics = calc_unit_struct_metric(net_trained.fc1.weight.data.cpu().numpy(),
+                                                         net_untrained.fc1.weight.data.cpu().numpy())
 
     # load data and test network
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     testset = torchvision.datasets.MNIST(root='../data', train=False, download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=4)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
 
     # plot fully trained network weights
     # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
-    weights = net_trained.fc1.weight.data.numpy()
+    weights = net_trained.fc1.weight.data.cpu().numpy()
     scale = (np.min(weights), np.max(weights))
-    acc_full = net_trained.test_net(criterion, testloader, device)
+    acc_full, _ = net_trained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
-    weights = net_untrained.fc1.weight.data.numpy()
-    acc_untrained = net_untrained.test_net(criterion, testloader, device)
+    weights = net_untrained.fc1.weight.data.cpu().numpy()
+    acc_untrained, _ = net_untrained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
@@ -135,8 +142,8 @@ if __name__ == "__main__":
         net_trained.eval()
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
-        weights = net_trained.fc1.weight.data.numpy()
-        acc = net_trained.test_net(criterion, testloader, device)
+        weights = net_trained.fc1.weight.data.cpu().numpy()
+        acc, _ = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
         if plot_w:
             plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
