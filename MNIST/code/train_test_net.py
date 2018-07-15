@@ -69,6 +69,7 @@ class Net(nn.Module):
         test_loss = 0
         correct = 0
         correct_labels = np.array([], dtype=int)
+        correct_labels_per_class = np.array([], dtype=int)
         for i_batch, (data, target) in enumerate(testloader):
             data, target = Variable(data), Variable(target)
             data, target = data.to(device), target.to(device)

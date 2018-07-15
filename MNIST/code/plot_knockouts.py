@@ -105,6 +105,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     t0 = time.time()
 
     fig = plt.figure(figsize=(10, 10))
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.01)
     ax = fig.add_subplot(111)
 
     # Define custom color maps
@@ -139,6 +140,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
             ax.add_artist(imagebox)
 
     ax.set_title(title)
+    ax.axis("off")
     # save figure
     plt.savefig("../plots/MNIST_tSNE_{0}_{1}.png".format(num_samples, name), dpi=1200)
     t1 = time.time()
@@ -153,8 +155,9 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
+    plot_w = False
     plot_tSNE_ = True
+    plot_corr = False
 
     # load nets and weights
     net_trained = Net()
@@ -187,8 +190,9 @@ if __name__ == "__main__":
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
     if plot_tSNE_:
+        plot_tSNE(testloader, labels, num_samples=10000, name="", title="accuray: {0}%".format(acc_full))
         labels[labels == 0] = -1
-        plot_tSNE(testloader, labels, num_samples=10000, title="accuray: {0}%".format(acc_full))
+        plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
 
     # plot untrained network weights
     weights = net_untrained.fc1.weight.data.cpu().numpy()
@@ -216,6 +220,6 @@ if __name__ == "__main__":
             plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1),
                       title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                           acc_full - acc))
-
-    # plot correlation of accuracy drop with metrics
-    plot_acc_metric_corr(unit_struct[:, 3], accuracies)
+    if plot_corr:
+        # plot correlation of accuracy drop with metrics
+        plot_acc_metric_corr(unit_struct[:, 3], accuracies)

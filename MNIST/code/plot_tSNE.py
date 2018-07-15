@@ -55,7 +55,7 @@ def plot_tSNE(testloader, num_samples, fit=False, colored=True):
     t0 = time.time()
 
     fig = plt.figure(figsize=(10, 10))
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.01)
     ax = fig.add_subplot(111)
 
     # define class colors
@@ -118,4 +118,4 @@ if __name__ == "__main__":
     num_digits = testloader.dataset.test_labels.size()
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, num_samples=10000, fit=False, colored=True)
+    plot_tSNE(testloader, num_samples=10000, fit=False, colored=False)
