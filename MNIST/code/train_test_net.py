@@ -65,12 +65,11 @@ class Net(nn.Module):
             torch.save(net.state_dict(), '../nets/MNIST_MLP(20, 10)_trained.pt')
 
     def test_net(self, criterion, testloader, device):
-        """ ToDo: besides total accuracy, calculate class specific accuracy and return a label for each image
-            ToDO: that indicates whether this image was classified correctly or not """
         # test the net
         test_loss = 0
         correct = 0
-        for data, target in testloader:
+        correct_labels = np.array([], dtype=bool)
+        for i_batch, (data, target) in enumerate(testloader):
             data, target = Variable(data), Variable(target)
             data, target = data.to(device), target.to(device)
             data = data.view(-1, 28 * 28)
@@ -78,14 +77,16 @@ class Net(nn.Module):
             # sum up batch loss
             test_loss += criterion(net_out, target).data.item()
             pred = net_out.data.max(1)[1]  # get the index of the max log-probability
-            correct += pred.eq(target.data).sum()
+            batch_labels = pred.eq(target.data)
+            correct_labels = np.append(correct_labels, batch_labels)
+            correct += batch_labels.sum()
         test_loss /= len(testloader.dataset)
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(test_loss, correct,
                                                                                      len(testloader.dataset),
                                                                                      100. * correct.item() / len(
                                                                                          testloader.dataset)))
         acc = 100. * correct.item() / len(testloader.dataset)
-        return acc
+        return acc, correct_labels
 
 
 if __name__ == "__main__":
@@ -96,8 +97,8 @@ if __name__ == "__main__":
     # chose CPU or GPU:
     dev = "GPU"
     # chose training or loading pre-trained model
-    train = True
-    save = True
+    train = False
+    save = False
     test = True
 
     # prepare GPU
@@ -129,8 +130,10 @@ if __name__ == "__main__":
     if train:
         net.train_net(criterion, optimizer, trainloader, epochs=100, device=device)
     else:
-        net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10).pt'))
+        net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net.eval()
 
     if test:
-        net.test_net(criterion, testloader, device)
+        acc, correct_labels = net.test_net(criterion, testloader, device)
+        print(acc)
+        print(correct_labels)
