@@ -147,7 +147,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     print("done! {0:.2f} seconds".format(t1 - t0))
 
 
-def plot_unit_class_acc(acc, acc_class, title, name, color='b'):
+def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
     fig = plt.figure(figsize=(10, 10))
     fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
     ax = fig.add_subplot(111)
@@ -174,17 +174,56 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='b'):
     # plt.show()
 
 
+def plot_unit_class_acc2(accs, accs_class, title, name):
+    fig = plt.figure(figsize=(15, 10))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
+    ax = fig.add_subplot(111)
+
+    bar_pos = np.linspace(-3, 27, 11, endpoint=True)
+    bar_pos[0] -= 2.0
+    bar_widths = np.zeros(11) + 0.8
+    bar_widths[0] += 0.8
+    bar_heights1 = np.insert(accs_class[0]*100, 0, accs[0])
+    bar_heights2 = np.insert((accs_class[0]-accs_class[1]) * 100, 0, accs[0]-accs[1])
+    bar_heights3 = bar_heights1-bar_heights2
+
+    ax.bar(x=bar_pos - bar_widths, align='center', height=bar_heights1, width=bar_widths,
+           color='k', edgecolor='k', lw=2)
+    ax.bar(x=bar_pos, align='center', height=bar_heights3, width=bar_widths,
+           color='b', edgecolor='k', lw=2)
+    ax.bar(x=bar_pos + bar_widths, align='center', height=bar_heights2, width=bar_widths,
+           color='r', edgecolor='k', lw=2)
+    colors = ['k', 'b', 'r']
+    for i_bars, bar_heights in enumerate([bar_heights1, bar_heights3, bar_heights2]):
+        for i, val in enumerate(bar_heights):
+            ax.text(bar_pos[i]-1.0, 100 + (3-2*i_bars), "{0:.2f}%".format(val), color=colors[i_bars], fontweight='bold')
+    ax.axhline(y=accs[0], ls='--', lw=2, c='k')
+    ax.axhline(y=accs[1], ls='--', lw=2, c='b')
+    ax.axhline(y=accs[0]-accs[1], ls='--', lw=2, c='r')
+    ax.set_xlabel("class label")
+    ax.set_ylabel("accuracy [%]")
+    ax.set_yticks(np.linspace(-10, 100, 12, endpoint=True))
+    ax.set_xticks(bar_pos)
+    labels = ["combined"] + np.arange(0, 10, 1).tolist()
+    ax.set_xticklabels(labels)
+    ax.set_title(title)
+    ax.set_ylim(-10, 110)
+    plt.savefig("../plots/unit_acc_" + name)
+    # plt.show()
+
+
 if __name__ == "__main__":
 
+    # ToDo: FIND OUT WHY PLOTTING TSNE CHANGES THE ACCURACIES! The more samples are considered for tSNE the more the accuracy changes!
     # setting rng seed for reproducability
     torch.manual_seed(1337)
     torch.cuda.manual_seed_all(1337)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
-    plot_tSNE_ = False
-    plot_corr = False
+    plot_w = True
+    plot_tSNE_ = True
+    plot_corr = True
     plot_unit_acc = True
 
     # load nets and weights
@@ -252,12 +291,15 @@ if __name__ == "__main__":
                                                                                                           acc_full - acc))
         if plot_unit_acc:
             # ToDo: combine blue and red barplots in a single plot showing the delta acc on top of the remaining acc
-            plot_unit_class_acc(acc, acc_class,
-                                title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
-                                name="knockout_{0}".format(i_unit + 1))
-            plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
-                                title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
-                                color='r', name="knockout_{0}_delta".format(i_unit+1))
+            # plot_unit_class_acc(acc, acc_class,
+            #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+            #                     name="knockout_{0}".format(i_unit + 1))
+            # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
+            #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+            #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
+            plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
+                                title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(i_unit+1, acc_full, acc_full-acc),
+                                name="knockout_{0}_combined".format(i_unit+1))
 
     if plot_corr:
         # plot correlation of accuracy drop with metrics
