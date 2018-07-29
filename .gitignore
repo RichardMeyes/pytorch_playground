@@ -4,6 +4,9 @@
 # caching files
 __pycache__
 
+# archives
+*.zip
+
 # data folder and plotting folder
 MNIST/data/processed
 MNIST/data/raw
