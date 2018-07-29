@@ -212,6 +212,39 @@ def plot_unit_class_acc2(accs, accs_class, title, name):
     # plt.show()
 
 
+def plot_activation(testloader, weights, accs_class_full, accs_class):
+    inputs = testloader.dataset.test_data.numpy()
+    targets = testloader.dataset.test_labels.numpy()
+
+    # loop through all classes
+    for i_class in range(10):
+        # creating plotting environment
+        fig, ax = plt.subplots(4, 5, figsize=(20, 10))
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.05, wspace=0.2, hspace=0.5)
+        # set plotting scale
+
+        input = inputs[targets == i_class]
+        input_avr = np.mean(input, axis=0)
+        for i_unit in range(20):
+            unit_activation = input_avr * weights[i_unit].reshape(28, 28)
+            scale = (np.min(unit_activation), np.max(unit_activation))
+            # plot on axis
+            row = i_unit // 5
+            col = i_unit % 5
+            # ax[row][col].matshow(input.reshape(28, 28), cmap=plt.cm.Greys,alpha=1)
+            ax[row][col].matshow(unit_activation.reshape(28, 28), cmap='bwr', alpha=1.0,
+                                 vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
+            ax[row][col].set_title("activation: {0:.2f}, delta_acc: {1:.2f}%".format(
+                unit_activation.sum(), 100*(accs_class_full[i_class]-accs_class[i_unit][i_class])))
+            # plotting cosmetics
+            ax[row][col].set_xticks([])
+            ax[row][col].set_yticks([])
+        plt.suptitle("class {0}, accuracy: {1:.2f}".format(i_class, 100*accs_class_full[i_class]))
+
+        # save plot
+        plt.savefig("../plots/activation_class_{0}".format(i_class))
+
+
 if __name__ == "__main__":
 
     # ToDo: FIND OUT WHY PLOTTING TSNE CHANGES THE ACCURACIES! The more samples are considered for tSNE the more the accuracy changes!
@@ -221,10 +254,11 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
-    plot_tSNE_ = True
-    plot_corr = True
-    plot_unit_acc = True
+    plot_w = False
+    plot_tSNE_ = False
+    plot_corr = False
+    plot_unit_acc = False
+    plot_a = True
 
     # load nets and weights
     net_trained = Net()
@@ -272,6 +306,7 @@ if __name__ == "__main__":
 
     # modify net, test accuracy and plot weights
     accuracies = np.zeros(20)
+    accuracies_class = np.zeros((20, 10))
     for i_unit in range(20):
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
@@ -280,6 +315,7 @@ if __name__ == "__main__":
         weights = net_trained.fc1.weight.data.cpu().numpy()
         acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
+        accuracies_class[i_unit] = acc_class
         if plot_w:
             plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                          title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
@@ -290,7 +326,6 @@ if __name__ == "__main__":
                       title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                           acc_full - acc))
         if plot_unit_acc:
-            # ToDo: combine blue and red barplots in a single plot showing the delta acc on top of the remaining acc
             # plot_unit_class_acc(acc, acc_class,
             #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
             #                     name="knockout_{0}".format(i_unit + 1))
@@ -304,3 +339,8 @@ if __name__ == "__main__":
     if plot_corr:
         # plot correlation of accuracy drop with metrics
         plot_acc_metric_corr(unit_struct[:, 3], accuracies)
+    if plot_a:
+        net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
+        net_trained.eval()
+        weights = net_trained.fc1.weight.data.cpu().numpy()
+        plot_activation(testloader, weights, acc_class_full, accuracies_class)
