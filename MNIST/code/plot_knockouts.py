@@ -350,12 +350,12 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
-    plot_tSNE_ = False
-    plot_corr_acc_met = False
-    plot_unit_acc = False
-    plot_a = False
-    plot_corr_acc_act = False  # has only effect if plot_a is True
+    plot_w = True
+    plot_tSNE_ = True
+    plot_corr_acc_met = True
+    plot_unit_acc = True
+    plot_a = True
+    plot_corr_acc_act = True  # has only effect if plot_a is True
     plot_a_split = True
 
 
