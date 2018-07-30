@@ -9,6 +9,7 @@ import scipy.stats as spst
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
 
@@ -69,9 +70,9 @@ def calc_unit_struct_metric(weights_trained, weights_untrained):
     pixel_metrics = np.zeros((len(weights_trained), 28, 28))
     for i_unit in range(len(weights_trained)):
         mean, std = np.mean(weights_trained[i_unit]), np.std(weights_trained[i_unit])
-        s, p = spst.mannwhitneyu(weights_trained[i_unit], weights_untrained[i_unit])
+        U, p = spst.mannwhitneyu(weights_trained[i_unit], weights_untrained[i_unit])
         pixel_metric = pixel_diff_metric(weights_trained[i_unit])
-        unit_struct[i_unit] = mean, std, s, p
+        unit_struct[i_unit] = mean, std, U, p
         pixel_metrics[i_unit] = pixel_metric
     return unit_struct, pixel_metrics
 
@@ -84,11 +85,13 @@ def plot_acc_metric_corr(metrics, accuracies):
     fig = plt.figure(figsize=(8, 6))
     fig.subplots_adjust(left=0.08, right=0.95, top=0.96, bottom=0.10, wspace=0.2, hspace=0.2)
     ax = fig.add_subplot(111)
-    ax.semilogx(metrics, accuracies, lw=1, marker='o', label="pearson - r: {0:.2f}, p: {1:.2e} \n"
-                                                             "spearman - r: {0:.2f}, p: {1:.2e}".format(r2, p2))
+    ax.invert_xaxis()
+    ax.semilogx(metrics, accuracies, lw=0, marker='o', label="pearson - r: {0:.2f}, p: {1:.2e} \n"
+                                                             "spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2))
     ax.set_xlabel("metric")
-    ax.set_ylabel("accuracy")
+    ax.set_ylabel("delta accuracy [%]")
     ax.legend(loc=2)
+    ax.grid(axis='y')
     plt.savefig("../plots/acc_metric_corr.png")
 
 
@@ -212,11 +215,13 @@ def plot_unit_class_acc2(accs, accs_class, title, name):
     # plt.show()
 
 
-def plot_activation(testloader, weights, accs_class_full, accs_class):
+def plot_activation(testloader, weights, weights_ini, accs_class_full, accs_class, plot_corr_acc_act):
     inputs = testloader.dataset.test_data.numpy()
     targets = testloader.dataset.test_labels.numpy()
 
     # loop through all classes
+    total_unit_activations = np.zeros((20, 10))
+    total_unit_activations_ini = np.zeros((20, 10))
     for i_class in range(10):
         # creating plotting environment
         fig, ax = plt.subplots(4, 5, figsize=(20, 10))
@@ -227,6 +232,11 @@ def plot_activation(testloader, weights, accs_class_full, accs_class):
         input_avr = np.mean(input, axis=0)
         for i_unit in range(20):
             unit_activation = input_avr * weights[i_unit].reshape(28, 28)
+            unit_activation_ini = input_avr * weights_ini[i_unit].reshape(28, 28)
+            # calculate statistics on activation
+            U, p = spst.mannwhitneyu(unit_activation.flatten(), unit_activation_ini.flatten())
+            total_unit_activations[i_unit][i_class] = np.sum(unit_activation)
+            total_unit_activations_ini[i_unit][i_class] = np.sum(unit_activation_ini)
             scale = (np.min(unit_activation), np.max(unit_activation))
             # plot on axis
             row = i_unit // 5
@@ -239,10 +249,96 @@ def plot_activation(testloader, weights, accs_class_full, accs_class):
             # plotting cosmetics
             ax[row][col].set_xticks([])
             ax[row][col].set_yticks([])
-        plt.suptitle("class {0}, accuracy: {1:.2f}".format(i_class, 100*accs_class_full[i_class]))
+            ax[row][col].set_xlabel("U: {0:.2e}, p: {1:.2e}".format(U, p))
+        plt.suptitle("class {0}, accuracy: {1:.2f}%".format(i_class, 100*accs_class_full[i_class]))
 
         # save plot
         plt.savefig("../plots/activation_class_{0}".format(i_class))
+
+    if plot_corr_acc_act:
+        # sclaing of activation
+        # total_unit_activations = F.softmax(torch.from_numpy(total_unit_activations), dim=0).numpy()
+        total_unit_activations /= np.max(np.abs([np.min(total_unit_activations),
+                                                 np.max(total_unit_activations)]))
+
+        # plot correlation between activation and accuracy drop
+        fig = plt.figure(figsize=(8, 6))
+        fig.subplots_adjust(left=0.08, right=0.97, top=0.96, bottom=0.10, wspace=0.2, hspace=0.2)
+        ax = fig.add_subplot(111)
+        x = total_unit_activations.flatten()
+        y = 100*(-accs_class+accs_class_full).flatten()
+
+        r, p = spst.pearsonr(x, y)
+        r2, p2 = spst.spearmanr(x, y)
+        ax.plot(x, y, lw=0, marker='o',
+                label="pearson - r: {0:.2f}, p: {1:.2e} \n spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2))
+        ax.set_xlabel("activation")
+        ax.set_ylabel("delta accuracy [%]")
+        ax.set_yticks(np.arange(-10, 101, 10))
+        ax.set_ylim(-10, 130)
+        ax.set_xlim(-1.1, 1.1)
+        ax.legend(loc=2)
+        ax.grid(axis='y')
+        plt.savefig("../plots/acc_activation_corr_total.png")
+
+        # plot correlation between activation and accuracy drop for each class separately
+        fig = plt.figure(figsize=(15, 10))
+        fig.subplots_adjust(left=0.05, right=0.98, top=0.96, bottom=0.05, wspace=0.3, hspace=0.3)
+        for i_class in range(10):
+            ax = fig.add_subplot(3, 4, i_class+1)
+            x = total_unit_activations[:, i_class]
+            y = 100*(accs_class_full[i_class]-accs_class[:, i_class])
+            r, p = spst.pearsonr(x, y)
+            r2, p2 = spst.spearmanr(x, y)
+            ax.plot(x, y, lw=0, marker='o',
+                    label="pearson - r: {0:.2f}, p: {1:.2e} \n spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2))
+            ax.set_xlabel("activation")
+            ax.set_ylabel("delta accuracy [%]")
+            ax.set_yticks(np.arange(-10, 101, 10))
+            ax.set_ylim(-10, 130)
+            ax.set_xlim(-1.1, 1.1)
+            ax.set_title("class {0}".format(i_class))
+            ax.legend(loc=2)
+            ax.grid(axis='y')
+        plt.savefig("../plots/acc_activation_corr.png")
+
+
+def plot_activation_ko(testloader, unit_label_masks, weights, accs_class_full, accs_class, name):
+    inputs = testloader.dataset.test_data.numpy()
+    targets = testloader.dataset.test_labels.numpy()
+
+    # loop through all classes
+    total_unit_activations = np.zeros((20, 10))
+    for i_class in range(10):
+        # creating plotting environment
+        fig, ax = plt.subplots(4, 5, figsize=(20, 10))
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.05, wspace=0.2, hspace=0.5)
+        # set plotting scale
+
+        for i_unit in range(20):
+            input = inputs[unit_label_masks[i_unit] & (targets == i_class)]
+            input_avr = np.mean(input, axis=0)
+            unit_activation = input_avr * weights[i_unit].reshape(28, 28)
+            # calculate statistics on activation
+            total_unit_activations[i_unit][i_class] = np.sum(unit_activation)
+            scale = (np.min(unit_activation), np.max(unit_activation))
+            # plot on axis
+            row = i_unit // 5
+            col = i_unit % 5
+            # ax[row][col].matshow(input.reshape(28, 28), cmap=plt.cm.Greys,alpha=1)
+            ax[row][col].matshow(unit_activation.reshape(28, 28), cmap='bwr', alpha=1.0,
+                                 vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
+            ax[row][col].set_title("activation: {0:.2f}, delta_acc: {1:.2f}%".format(
+                unit_activation.sum(), 100*(accs_class_full[i_class]-accs_class[i_unit][i_class])))
+            # plotting cosmetics
+            ax[row][col].set_xticks([])
+            ax[row][col].set_yticks([])
+        plt.suptitle("class {0}, accuracy: {1:.2f}%".format(i_class, 100*accs_class_full[i_class]))
+
+        # save plot
+        plt.savefig("../plots/activation_class_{0}_{1}".format(i_class, name))
+
+
 
 
 if __name__ == "__main__":
@@ -256,9 +352,12 @@ if __name__ == "__main__":
     """ setting flags """
     plot_w = False
     plot_tSNE_ = False
-    plot_corr = False
+    plot_corr_acc_met = False
     plot_unit_acc = False
-    plot_a = True
+    plot_a = False
+    plot_corr_acc_act = False  # has only effect if plot_a is True
+    plot_a_split = True
+
 
     # load nets and weights
     net_trained = Net()
@@ -298,16 +397,18 @@ if __name__ == "__main__":
         plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
-    weights = net_untrained.fc1.weight.data.cpu().numpy()
+    weights_ini = net_untrained.fc1.weight.data.cpu().numpy()
     acc_untrained, _, _ = net_untrained.test_net(criterion, testloader, device)
     if plot_w:
-        plot_weights(weights, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
+        plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
 
     # modify net, test accuracy and plot weights
     accuracies = np.zeros(20)
     accuracies_class = np.zeros((20, 10))
+    unit_labels_ko = np.zeros((20, 10000))
     for i_unit in range(20):
+        print("knockout unit {0}".format(i_unit))
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
@@ -316,6 +417,7 @@ if __name__ == "__main__":
         acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
         accuracies_class[i_unit] = acc_class
+        unit_labels_ko[i_unit] = labels_ko
         if plot_w:
             plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                          title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
@@ -336,11 +438,19 @@ if __name__ == "__main__":
                                 title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(i_unit+1, acc_full, acc_full-acc),
                                 name="knockout_{0}_combined".format(i_unit+1))
 
-    if plot_corr:
+    if plot_corr_acc_met:
         # plot correlation of accuracy drop with metrics
-        plot_acc_metric_corr(unit_struct[:, 3], accuracies)
+        plot_acc_metric_corr(unit_struct[:, 3], acc_full-accuracies)
     if plot_a:
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
         weights = net_trained.fc1.weight.data.cpu().numpy()
-        plot_activation(testloader, weights, acc_class_full, accuracies_class)
+        plot_activation(testloader, weights, weights_ini, acc_class_full, accuracies_class, plot_corr_acc_act)
+    if plot_a_split:
+        net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
+        net_trained.eval()
+        weights = net_trained.fc1.weight.data.cpu().numpy()
+        unit_label_masks_recognized = unit_labels_ko == 1
+        unit_label_masks_not_recognized = unit_labels_ko == 0
+        plot_activation_ko(testloader, unit_label_masks_recognized, weights, acc_class_full, accuracies_class, "rec")
+        plot_activation_ko(testloader, unit_label_masks_not_recognized, weights, acc_class_full, accuracies_class, "not_rec")
