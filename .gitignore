@@ -4,6 +4,9 @@
 # caching files
 __pycache__
 
-# data folder
+# MNIST dataset
 MNIST/data/processed
 MNIST/data/raw
+
+# weird .exe files
+*.exe*
