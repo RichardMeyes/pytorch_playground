@@ -102,11 +102,11 @@ if __name__ == "__main__":
 
     """ setting flags """
     # chose data plotting
-    plot = False
+    plot = True
     # chose CPU or GPU:
     dev = "GPU"
     # chose training or loading pre-trained model
-    train = False
+    train = True
     save = False
     test = True
 
