@@ -129,7 +129,7 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
     ax.bar(x=bar_pos, align='center', height=bar_heights, width=bar_widths,
            color=color, edgecolor='k', lw=2)
     for i, val in enumerate(bar_heights):
-        ax.text(bar_pos[i]-0.4, val + 1, "{0:.2f}%".format(val), color='k', fontweight='bold')
+        ax.text(bar_pos[i]-0.4, 100 + 1, "{0:.2f}%".format(val), color='k', fontweight='bold')
     ax.axvline(x=-0.8, lw=3, ls='--', c='k')
     ax.axhline(y=acc, ls='--', lw=2, c='r')
     ax.set_xlabel("class label")
@@ -138,7 +138,7 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
     labels = ["total"] + np.arange(0, 10, 1).tolist()
     ax.set_xticklabels(labels)
     ax.set_title(title)
-    ax.set_ylim(-10, 110)
+    ax.set_ylim(-0, 110)
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
 
@@ -315,8 +315,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
-    plot_tSNE_ = False
+    plot_w = True
+    plot_tSNE_ = True
     plot_corr_acc_met = True
     plot_unit_acc = True
     plot_a = False
