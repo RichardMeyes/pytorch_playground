@@ -438,7 +438,6 @@ if __name__ == "__main__":
                 labels_ko[labels_ko_i == 0] = 0
                 labels_ko[labels_ko_k == 0] = 0
                 labels_ko[labels == -1] = -1
-                print((labels_ko == 2).sum())
                 plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1) + "," + str(k_unit + 1),
                           title="knockout_" + str(i_unit+1) + "," + str(k_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                               acc_full - acc))
