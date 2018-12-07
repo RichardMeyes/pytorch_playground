@@ -69,6 +69,7 @@ class Net(nn.Module):
         test_loss = 0
         correct = 0
         correct_class = np.zeros(10)
+        print(len(correct_class))
         correct_labels = np.array([], dtype=int)
         for i_batch, (data, target) in enumerate(testloader):
             data, target = Variable(data), Variable(target)
@@ -133,17 +134,32 @@ if __name__ == "__main__":
     testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False, num_workers=4)
     classes = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
+    # Taking only part of the data
+    mask0 = trainset.train_labels.numpy() == 0
+    mask1 = trainset.train_labels.numpy() == 1
+    mask_train = mask0 | mask1
+    mask0 = testset.test_labels.numpy() == 0
+    mask1 = testset.test_labels.numpy() == 1
+    mask_test = mask0 | mask1
+    print(len(mask_test), mask_test.sum())
+    my_sampler_train = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_train)))
+    my_sampler_test = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_test)))
+    trainloader_sub01 = torch.utils.data.DataLoader(trainset, batch_size=256, sampler=my_sampler_train,
+                                                    shuffle=False, num_workers=4)
+    testloader_sub01 = torch.utils.data.DataLoader(testset, batch_size=256, sampler=my_sampler_test,
+                                                    shuffle=False, num_workers=4)
+
     if plot:
         plot_data()
 
     if train:
-        net.train_net(criterion, optimizer, trainloader, epochs=10, device=device)
+        net.train_net(criterion, optimizer, trainloader_sub01, epochs=1, device=device)
     else:
         net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net.eval()
 
     if test:
-        acc, correct_labels, acc_class = net.test_net(criterion, testloader, device)
+        acc, correct_labels, acc_class = net.test_net(criterion, testloader_sub01, device)
         print(acc)
         print(correct_labels)
         print(acc_class)
