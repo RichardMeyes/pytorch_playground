@@ -109,6 +109,9 @@ if __name__ == "__main__":
     train = True
     save = False
     test = True
+    # chose to train with a specific subset of digits. Right now, only pairs are allowed
+    use_subset = True
+    subset_digits = [0, 1]  # specifiy which pair of digits should be used for training and testing
 
     # prepare GPU
     if dev == "GPU":
@@ -134,30 +137,31 @@ if __name__ == "__main__":
     classes = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
     # Train with a
-    mask0 = trainset.train_labels.numpy() == 0
-    mask1 = trainset.train_labels.numpy() == 1
-    mask_train = mask0 | mask1
-    mask0 = testset.test_labels.numpy() == 0
-    mask1 = testset.test_labels.numpy() == 1
-    mask_test = mask0 | mask1
-    my_sampler_train = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_train)))
-    my_sampler_test = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_test)))
-    trainloader_sub01 = torch.utils.data.DataLoader(trainset, batch_size=256, sampler=my_sampler_train,
-                                                    shuffle=False, num_workers=4)
-    testloader_sub01 = torch.utils.data.DataLoader(testset, batch_size=256, sampler=my_sampler_test,
-                                                    shuffle=False, num_workers=4)
+    if use_subset:
+        mask0 = trainset.train_labels.numpy() == subset_digits[0]
+        mask1 = trainset.train_labels.numpy() == subset_digits[1]
+        mask_train = mask0 | mask1
+        mask0 = testset.test_labels.numpy() == subset_digits[0]
+        mask1 = testset.test_labels.numpy() == subset_digits[1]
+        mask_test = mask0 | mask1
+        my_sampler_train = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_train)))
+        my_sampler_test = torch.utils.data.SubsetRandomSampler(np.squeeze(np.argwhere(mask_test)))
+        trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, sampler=my_sampler_train,
+                                                        shuffle=False, num_workers=4)
+        testloader = torch.utils.data.DataLoader(testset, batch_size=256, sampler=my_sampler_test,
+                                                        shuffle=False, num_workers=4)
 
     if plot:
         plot_data()
 
     if train:
-        net.train_net(criterion, optimizer, trainloader_sub01, epochs=5, device=device)
+        net.train_net(criterion, optimizer, trainloader, epochs=5, device=device)
     else:
         net.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net.eval()
 
     if test:
-        acc, correct_labels, acc_class = net.test_net(criterion, testloader_sub01, device)
+        acc, correct_labels, acc_class = net.test_net(criterion, testloader, device)
         print(acc)
         print(correct_labels)
         print(acc_class)
