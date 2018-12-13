@@ -28,9 +28,9 @@ def plot_data():
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 20, bias=False)
-        self.fc2 = nn.Linear(20, 10, bias=False)
-        self.fc3 = nn.Linear(10, 10, bias=False)
+        self.fc1 = nn.Linear(28 * 28, 6, bias=False)
+        self.fc2 = nn.Linear(6, 4, bias=False)
+        self.fc3 = nn.Linear(4, 10, bias=False)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -57,7 +57,7 @@ class Net(nn.Module):
                 optimizer.step()
                 if batch_idx % log_interval == 0:
                     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(epoch, batch_idx * len(data),
-                                                                                   len(trainloader.dataset),
+                                                                                   len(trainloader.sampler),
                                                                                    100. * batch_idx / len(trainloader),
                                                                                    loss.data.item()))
         if save:
@@ -99,6 +99,12 @@ class Net(nn.Module):
 
 
 if __name__ == "__main__":
+
+    # setting random seed
+    np.random.seed(2478)
+    torch.manual_seed(1273890)
+    torch.cuda.manual_seed(23789)
+    # torch.cuda.seed()
 
     """ setting flags """
     # chose data plotting
