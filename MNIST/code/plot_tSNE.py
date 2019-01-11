@@ -21,8 +21,8 @@ def plot_single_digits(trainloader):
 
 
 def plot_tSNE(testloader, num_samples, fit=False, colored=True):
-    tsne = TSNE(n_components=2, perplexity=40, n_iter=10000, n_iter_without_progress=250,
-                init='random', random_state=None, verbose=4, n_jobs=12)
+    tsne = TSNE(n_components=2, perplexity=40, n_iter=5000, n_iter_without_progress=250,
+                init='random', random_state=1337, verbose=4, n_jobs=12)
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
     Y = testloader.dataset.test_labels.numpy()[:num_samples]
 
@@ -118,4 +118,4 @@ if __name__ == "__main__":
     num_digits = testloader.dataset.test_labels.size()
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, num_samples=10000, fit=False, colored=False)
+    plot_tSNE(testloader, num_samples=10000, fit=True, colored=True)
