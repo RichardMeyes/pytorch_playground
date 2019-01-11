@@ -118,4 +118,4 @@ if __name__ == "__main__":
     num_digits = testloader.dataset.test_labels.size()
 
     # plot_single_digits(trainloader)
-    plot_tSNE(testloader, num_samples=10000, fit=True, colored=True)
+    plot_tSNE(testloader, num_samples=10000, fit=False, colored=False)
