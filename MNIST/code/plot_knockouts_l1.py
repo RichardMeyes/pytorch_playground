@@ -1,5 +1,6 @@
 import pickle
 import time
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
@@ -127,7 +128,12 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     custom_cmap_white_colors[:, -1] = 0
     custom_cmap_white = ListedColormap(custom_cmap_white_colors)
 
-    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_white]
+    custom_cmap_green = plt.cm.brg
+    custom_cmap_green_colors = custom_cmap_green(np.arange(custom_cmap_green.N))
+    custom_cmap_green_colors[:, -1] = np.linspace(0, 1, custom_cmap_green.N)
+    custom_cmap_green = ListedColormap(custom_cmap_green_colors)
+
+    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_green, custom_cmap_white]
 
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
@@ -150,7 +156,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     print("done! {0:.2f} seconds".format(t1 - t0))
 
 
-def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
+def plot_unit_class_acc(acc, acc_class, title, name, color='k', paper=False):
     fig = plt.figure(figsize=(10, 10))
     fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
     ax = fig.add_subplot(111)
@@ -163,16 +169,19 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
     ax.bar(x=bar_pos, align='center', height=bar_heights, width=bar_widths,
            color=color, edgecolor='k', lw=2)
     for i, val in enumerate(bar_heights):
-        ax.text(bar_pos[i]-0.4, val + 1, "{0:.2f}%".format(val), color='k', fontweight='bold')
+        ax.text(bar_pos[i]-0.4, 101, "{0:.2f}%".format(val), color='k', fontweight='bold')
     ax.axvline(x=-0.8, lw=3, ls='--', c='k')
-    ax.axhline(y=acc, ls='--', lw=2, c='r')
-    ax.set_xlabel("class label")
-    ax.set_ylabel("accuracy [%]")
+    ax.axhline(y=acc, ls='--', lw=2, c='r', label="class average accuracy")
+    ax.set_xlabel("class label", fontsize=16, fontweight='bold')
+    ax.set_ylabel("accuracy [%]", fontsize=16, fontweight='bold')
     ax.set_xticks(bar_pos)
-    labels = ["total"] + np.arange(0, 10, 1).tolist()
-    ax.set_xticklabels(labels)
-    ax.set_title(title)
-    ax.set_ylim(-10, 110)
+    labels = ["combined"] + np.arange(0, 10, 1).tolist()
+    ax.set_xticklabels(labels, fontsize=16)
+    ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=16)
+    ax.set_ylim(0, 110)
+    # ax.set_ylim(-10, 110)
+    plt.legend()
+    plt.tight_layout()
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
 
@@ -349,13 +358,13 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
+    plot_w = False
     plot_tSNE_ = True
-    plot_corr_acc_met = True
+    plot_corr_acc_met = False
     plot_unit_acc = True
-    plot_a = True
-    plot_corr_acc_act = True  # has only effect if plot_a is True
-    plot_a_split = True
+    plot_a = False
+    plot_corr_acc_act = False  # has only effect if plot_a is True
+    plot_a_split = False
 
     # load nets and weights
     net_trained = Net()
@@ -392,7 +401,7 @@ if __name__ == "__main__":
         labels[labels == 0] = -1
         plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
     if plot_unit_acc:
-        plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full")
+        plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full", paper=True)
 
     # plot untrained network weights
     weights_ini = net_untrained.fc1.weight.data.cpu().numpy()
@@ -400,6 +409,8 @@ if __name__ == "__main__":
     if plot_w:
         plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
+
+    quit()
 
     # modify net, test accuracy and plot weights
     accuracies = np.zeros(20)
@@ -421,7 +432,11 @@ if __name__ == "__main__":
                          title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
                          name="knockout_" + str(i_unit+1))
         if plot_tSNE_:
+            labels_ko_cp = copy.deepcopy(labels_ko)
             labels_ko[labels == -1] = -1
+            labels_ko[labels_ko_cp == 1] = 2
+            labels_ko[labels == 1] = 1
+            labels_ko[labels_ko_cp == 0] = 0
             plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1),
                       title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                           acc_full - acc))
