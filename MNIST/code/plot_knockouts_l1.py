@@ -361,7 +361,7 @@ if __name__ == "__main__":
     plot_w = False
     plot_tSNE_ = True
     plot_corr_acc_met = False
-    plot_unit_acc = True
+    plot_unit_acc = False
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
     plot_a_split = False
@@ -409,8 +409,6 @@ if __name__ == "__main__":
     if plot_w:
         plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
-
-    quit()
 
     # modify net, test accuracy and plot weights
     accuracies = np.zeros(20)
