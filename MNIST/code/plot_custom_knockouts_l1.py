@@ -366,13 +366,9 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
-    plot_tSNE_ = False
-    plot_corr_acc_met = False
+    plot_w = True
+    plot_tSNE_ = True
     plot_unit_acc = True
-    plot_a = False
-    plot_corr_acc_act = False  # has only effect if plot_a is True
-    plot_a_split = False
 
     # load nets and weights
     net_trained = Net()
@@ -418,58 +414,40 @@ if __name__ == "__main__":
         plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
 
-    # modify net, test accuracy and plot weights
-    accuracies = np.zeros(20)
-    accuracies_class = np.zeros((20, 10))
-    unit_labels_ko = np.zeros((20, 10000))
-    for i_unit in range(20):
-        print("knockout unit {0}".format(i_unit))
-        net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
-        net_trained.eval()
-        net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
-        # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
-        weights = net_trained.fc1.weight.data.cpu().numpy()
-        acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
-        accuracies[i_unit] = acc
-        accuracies_class[i_unit] = acc_class
-        unit_labels_ko[i_unit] = labels_ko
-        if plot_w:
-            plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
-                         title="knockout_" + str(i_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
-                         name="knockout_" + str(i_unit+1))
-        if plot_tSNE_:
-            labels_ko_cp = copy.deepcopy(labels_ko)
-            labels_ko[labels == -1] = -1
-            labels_ko[labels_ko_cp == 1] = 2
-            labels_ko[labels == 1] = 1
-            labels_ko[labels_ko_cp == 0] = 0
-            plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1),
-                      title="knockout_" + str(i_unit + 1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
-                                                                                                          acc_full - acc))
-        if plot_unit_acc:
-            # plot_unit_class_acc(acc, acc_class,
-            #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
-            #                     name="knockout_{0}".format(i_unit + 1))
-            # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
-            #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
-            #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
-            plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
-                                title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(i_unit+1, acc_full, acc_full-acc),
-                                name="knockout_{0}_combined".format(i_unit+1))
+    # specify custom knockout
+    ko_units = [5, 10, 12, 17]
 
-    if plot_corr_acc_met:
-        # plot correlation of accuracy drop with metrics
-        plot_acc_metric_corr(unit_struct[:, 3], acc_full-accuracies)
-    if plot_a:
-        net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
-        net_trained.eval()
-        weights = net_trained.fc1.weight.data.cpu().numpy()
-        plot_activation(testloader, weights, weights_ini, acc_class_full, accuracies_class, plot_corr_acc_act)
-    if plot_a_split:
-        net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
-        net_trained.eval()
-        weights = net_trained.fc1.weight.data.cpu().numpy()
-        unit_label_masks_recognized = unit_labels_ko == 1
-        unit_label_masks_not_recognized = unit_labels_ko == 0
-        plot_activation_ko(testloader, unit_label_masks_recognized, weights, acc_class_full, accuracies_class, "rec")
-        plot_activation_ko(testloader, unit_label_masks_not_recognized, weights, acc_class_full, accuracies_class, "not_rec")
+    # modify net, test accuracy and plot weights
+    unit_labels_ko = np.zeros((20, 10000))
+    print("knockout unit {0}".format(ko_units))
+    net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
+    net_trained.eval()
+    for i_unit in ko_units:
+        net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
+    # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
+    weights = net_trained.fc1.weight.data.cpu().numpy()
+    acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
+    unit_labels_ko = labels_ko
+    if plot_w:
+        plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
+                     title="knockout_" + str(ko_units) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
+                     name="knockout_" + str(ko_units))
+    if plot_tSNE_:
+        labels_ko_cp = copy.deepcopy(labels_ko)
+        labels_ko[labels == -1] = -1
+        labels_ko[labels_ko_cp == 1] = 2
+        labels_ko[labels == 1] = 1
+        labels_ko[labels_ko_cp == 0] = 0
+        plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(ko_units),
+                  title="knockout_" + str(ko_units) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
+                                                                                                          acc_full - acc))
+    if plot_unit_acc:
+        # plot_unit_class_acc(acc, acc_class,
+        #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+        #                     name="knockout_{0}".format(i_unit + 1))
+        # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
+        #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
+        #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
+        plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
+                            title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(ko_units, acc_full, acc_full-acc),
+                            name="knockout_{0}_combined".format(ko_units))
