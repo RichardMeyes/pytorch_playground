@@ -1,5 +1,6 @@
 import pickle
 import time
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
@@ -122,17 +123,22 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     custom_cmap_red_colors[:, -1] = np.linspace(0, 1, custom_cmap_red.N)
     custom_cmap_red = ListedColormap(custom_cmap_red_colors)
 
-    custom_cmap_blue = plt.cm.bwr_r
-    custom_cmap_blue_colors = custom_cmap_blue(np.arange(custom_cmap_blue.N))
-    custom_cmap_blue_colors[:, -1] = np.linspace(0, 1, custom_cmap_blue.N)
-    custom_cmap_blue = ListedColormap(custom_cmap_blue_colors)
+    custom_cmap_orange = plt.cm.Wistia
+    custom_cmap_orange_colors = custom_cmap_orange(np.arange(custom_cmap_orange.N))
+    custom_cmap_orange_colors[:, -1] = np.linspace(0, 1, custom_cmap_orange.N)
+    custom_cmap_orange = ListedColormap(custom_cmap_orange_colors)
 
     custom_cmap_white = plt.cm.Greys
     custom_cmap_white_colors = custom_cmap_white(np.arange(custom_cmap_white.N))
     custom_cmap_white_colors[:, -1] = 0
     custom_cmap_white = ListedColormap(custom_cmap_white_colors)
 
-    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_blue, custom_cmap_white]
+    custom_cmap_green = plt.cm.brg
+    custom_cmap_green_colors = custom_cmap_green(np.arange(custom_cmap_green.N))
+    custom_cmap_green_colors[:, -1] = np.linspace(0, 1, custom_cmap_green.N)
+    custom_cmap_green = ListedColormap(custom_cmap_green_colors)
+
+    color_maps = [custom_cmap_red, custom_cmap_black, custom_cmap_green, custom_cmap_orange, custom_cmap_white]
 
     if hasattr(offsetbox, 'AnnotationBbox'):
         for i_digit in range(num_samples):
@@ -182,18 +188,20 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k'):
     # plt.show()
 
 
-def plot_unit_class_acc2(accs, accs_class, title, name):
-    fig = plt.figure(figsize=(15, 10))
+def plot_unit_class_acc2(accs, accs_class, class_perc_redun, title, name):
+    fig = plt.figure(figsize=(12, 10))
     fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
     ax = fig.add_subplot(111)
 
-    bar_pos = np.linspace(-3, 27, 11, endpoint=True)
+    bar_pos = np.linspace(-4, 36, 11, endpoint=True)
     bar_pos[0] -= 2.0
     bar_widths = np.zeros(11) + 0.8
     bar_widths[0] += 0.8
     bar_heights1 = np.insert(accs_class[0]*100, 0, accs[0])
     bar_heights2 = np.insert((accs_class[0]-accs_class[1]) * 100, 0, accs[0]-accs[1])
     bar_heights3 = bar_heights1-bar_heights2
+    bar_heights4 = class_perc_redun*100
+    bar_heights2 -= bar_heights4
 
     ax.bar(x=bar_pos - bar_widths, align='center', height=bar_heights1, width=bar_widths,
            color='k', edgecolor='k', lw=2)
@@ -201,21 +209,31 @@ def plot_unit_class_acc2(accs, accs_class, title, name):
            color='b', edgecolor='k', lw=2)
     ax.bar(x=bar_pos + bar_widths, align='center', height=bar_heights2, width=bar_widths,
            color='r', edgecolor='k', lw=2)
-    colors = ['k', 'b', 'r']
-    for i_bars, bar_heights in enumerate([bar_heights1, bar_heights3, bar_heights2]):
+    ax.bar(x=bar_pos + 2*bar_widths, align='center', height=bar_heights4, width=bar_widths,
+           color='orange', edgecolor='k', lw=2)
+    colors = ['k', 'b', 'r', 'orange']
+    for i_bars, bar_heights in enumerate([bar_heights1, bar_heights3, bar_heights2, bar_heights4]):
         for i, val in enumerate(bar_heights):
-            ax.text(bar_pos[i]-1.0, 100 + (3-2*i_bars), "{0:.2f}%".format(val), color=colors[i_bars], fontweight='bold')
-    ax.axhline(y=accs[0], ls='--', lw=2, c='k')
-    ax.axhline(y=accs[1], ls='--', lw=2, c='b')
-    ax.axhline(y=accs[0]-accs[1], ls='--', lw=2, c='r')
-    ax.set_xlabel("class label")
-    ax.set_ylabel("accuracy [%]")
+            if i == 0:
+                ax.text(bar_pos[i]-2.0+1.6*i_bars, 112, "{0:.2f}%".format(val), color=colors[i_bars],
+                        fontsize=20, fontweight='bold', rotation=80)
+            else:
+                ax.text(bar_pos[i] - 1.2 + 0.8*i_bars, 112, "{0:.2f}%".format(val), color=colors[i_bars],
+                        fontsize=14, fontweight='bold', rotation=80)
+    ax.axhline(y=accs[0], ls='--', lw=4, c='k')
+    ax.axhline(y=accs[1], ls='--', lw=4, c='b')
+    ax.axhline(y=accs[0]-accs[1], ls='--', lw=4, c='r')
+    ax.axhline(y=bar_heights4[0], ls='--', lw=4, c='orange')
+    ax.set_xlabel("class label", fontsize=20, fontweight='bold')
+    ax.set_ylabel("accuracy [%]", fontsize=20, fontweight='bold')
     ax.set_yticks(np.linspace(-10, 100, 12, endpoint=True))
+    ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=20)
     ax.set_xticks(bar_pos)
     labels = ["combined"] + np.arange(0, 10, 1).tolist()
-    ax.set_xticklabels(labels)
-    ax.set_title(title)
-    ax.set_ylim(-10, 110)
+    ax.set_xticklabels(labels, fontsize=20)
+    # ax.set_title(title)
+    ax.set_ylim(-10, 115)
+    plt.tight_layout()
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
 
@@ -354,9 +372,9 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
+    plot_w = False
     plot_tSNE_ = True
-    plot_corr_acc_met = True
+    plot_corr_acc_met = False
     plot_unit_acc = True
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
@@ -388,20 +406,20 @@ if __name__ == "__main__":
     # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
     weights = net_trained.fc1.weight.data.cpu().numpy()
     scale = (np.min(weights), np.max(weights))
-    acc_full, labels, acc_class_full = net_trained.test_net(criterion, testloader, device)
+    acc_full, labels, acc_class_full, targets = net_trained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
-    if plot_tSNE_:
-        plot_tSNE(testloader, labels, num_samples=10000, name="", title="accuray: {0}%".format(acc_full))
-        labels[labels == 0] = -1
-        plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
+    plot_tSNE(testloader, labels, num_samples=10000, name="", title="accuray: {0}%".format(acc_full))
+    labels[labels == 0] = -1
+    # if plot_tSNE_:
+    #     plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
     if plot_unit_acc:
         plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full")
 
     # plot untrained network weights
     weights_ini = net_untrained.fc1.weight.data.cpu().numpy()
-    acc_untrained, _, _ = net_untrained.test_net(criterion, testloader, device)
+    acc_untrained, _, _, _ = net_untrained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
@@ -411,18 +429,24 @@ if __name__ == "__main__":
     accuracies_class = np.zeros((20, 20, 10))
     unit_labels_ko = np.zeros((20, 20, 10000))
     for i_unit in range(20):
+        if i_unit != 11:
+            continue
+
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
-        _, labels_ko_i, _ = net_trained.test_net(criterion, testloader, device)
+        acc_i, labels_ko_i, acc_class_i, _ = net_trained.test_net(criterion, testloader, device)
         for k_unit in range(i_unit, 20):
+            if k_unit != 18:
+                continue
+
             print("knockout unit {0} and {1}".format(i_unit, k_unit))
             net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
             net_trained.eval()
             net_trained.fc1.weight.data[k_unit, :] = torch.zeros(784)
-            _, labels_ko_k, _ = net_trained.test_net(criterion, testloader, device)
+            acc_k, labels_ko_k, acc_class_k, _ = net_trained.test_net(criterion, testloader, device)
             net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
-            acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
+            acc, labels_ko, acc_class, _ = net_trained.test_net(criterion, testloader, device)
             accuracies[i_unit, k_unit] = acc
             accuracies_class[i_unit, k_unit] = acc_class
             unit_labels_ko[i_unit, k_unit] = labels_ko
@@ -433,14 +457,33 @@ if __name__ == "__main__":
                              title="knockout_" + str(i_unit+1) + ',' + str(k_unit+1) +
                                    ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc, acc_full-acc),
                              name="knockout_" + str(i_unit+1) + "," + str(k_unit+1))
+
+            # green 2
+            labels_ko_cp = copy.deepcopy(labels_ko)
+            labels_ko[labels == -1] = -1
+            labels_ko[labels_ko_cp == 1] = 2
+            labels_ko[labels == 1] = 1
+            labels_ko[labels_ko_cp == 0] = 0
+
+            # orange 3
+            labels_ko[labels_ko == 0] = 3
+            labels_ko[labels_ko_i == 0] = 0
+            labels_ko[labels_ko_k == 0] = 0
+
+            # calculate percentage of orange for each class
+            class_perc_redun = np.zeros(10)
+            perc_redun = 0
+            for i_class in range(10):
+                class_perc_redun[i_class] = np.sum(np.logical_and(np.array(labels_ko) == 3, targets == i_class)) / \
+                                         (np.sum(targets[labels == 1] == i_class))
+                perc_redun += class_perc_redun[i_class]*np.sum(targets == i_class)/len(targets)
+            class_perc_redun = np.insert(class_perc_redun, 0, perc_redun)
+
             if plot_tSNE_:
-                labels_ko[labels_ko == 0] = 2
-                labels_ko[labels_ko_i == 0] = 0
-                labels_ko[labels_ko_k == 0] = 0
-                labels_ko[labels == -1] = -1
                 plot_tSNE(testloader, labels_ko, num_samples=10000, name="ko_" + str(i_unit + 1) + "," + str(k_unit + 1),
                           title="knockout_" + str(i_unit+1) + "," + str(k_unit+1) + ", accuray: {0}%, delta_acc: {1:.2f}%".format(acc,
                                                                                                               acc_full - acc))
+
             if plot_unit_acc:
                 # plot_unit_class_acc(acc, acc_class,
                 #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
@@ -448,7 +491,7 @@ if __name__ == "__main__":
                 # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
                 #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
                 #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
-                plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
+                plot_unit_class_acc2((acc_full, acc, acc_i, acc_k), (acc_class_full, acc_class, acc_class_i, acc_class_k), class_perc_redun,
                                     title="knockout_{0},{1} - accuray: {2}%, delta_acc: {3:.2f}%".format(i_unit+1, k_unit+1, acc_full, acc_full-acc),
                                     name="knockout_{0},{1}_combined".format(i_unit+1, k_unit+1))
 

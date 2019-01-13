@@ -70,6 +70,7 @@ class Net(nn.Module):
         correct = 0
         correct_class = np.zeros(10)
         correct_labels = np.array([], dtype=int)
+        class_labels = np.array([], dtype=int)
         for i_batch, (data, target) in enumerate(testloader):
             data, target = Variable(data), Variable(target)
             data, target = data.to(device), target.to(device)
@@ -80,6 +81,7 @@ class Net(nn.Module):
             pred = net_out.data.max(1)[1]  # get the index of the max log-probability
             batch_labels = pred.eq(target.data)
             correct_labels = np.append(correct_labels, batch_labels)
+            class_labels = np.append(class_labels, target.data)
             for i_label in range(len(target)):
                 label = target[i_label].item()
                 correct_class[label] += batch_labels[i_label].item()
@@ -95,7 +97,7 @@ class Net(nn.Module):
         for i_label in range(10):
             num = (testloader.dataset.test_labels.numpy() == i_label).sum()
             acc_class[i_label] = correct_class[i_label]/num
-        return acc, correct_labels, acc_class
+        return acc, correct_labels, acc_class, class_labels
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from train_test_net import Net
 
 
 def plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title, name):
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(10, 10))
     fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.05, wspace=0.2, hspace=0.5)
     for i in range(20):
         ax = fig.add_subplot(4, 5, i+1)
@@ -26,10 +26,12 @@ def plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untra
         ax.matshow(i_weights, cmap='seismic', vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
         ax.set_xticks(())
         ax.set_yticks(())
-        ax.set_title("U: {0:.2e}, p: {1:.2e}".format(int(unit_struct[i, 2]), unit_struct[i, 3]))
-        ax.set_xlabel("mean: {0:.2f}, std: {1:.4f}".format(int(unit_struct[i, 0]), unit_struct[i, 1]))
-        ax.set_ylabel("rel. pixel metric: {0:.2f}".format(np.sum(pixel_metrics[i])/np.sum(pixel_metrics_untrained[i])))
-    plt.suptitle("{0}".format(title))
+        # ax.set_title("U: {0:.2e}, p: {1:.2e}".format(int(unit_struct[i, 2]), unit_struct[i, 3]))
+        ax.set_title("p: {0:.2e}".format(unit_struct[i, 3]), fontsize=20)
+        # ax.set_xlabel("mean: {0:.2f}, std: {1:.4f}".format(int(unit_struct[i, 0]), unit_struct[i, 1]))
+        # ax.set_ylabel("rel. pixel metric: {0:.2f}".format(np.sum(pixel_metrics[i])/np.sum(pixel_metrics_untrained[i])))
+    # plt.suptitle("{0}".format(title))
+    plt.tight_layout()
     plt.savefig("../plots/weights_" + name)
     plt.close()
     # plt.show()
@@ -366,10 +368,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
+    plot_w = True
     plot_tSNE_ = False
     plot_corr_acc_met = False
-    plot_unit_acc = True
+    plot_unit_acc = False
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
     plot_a_split = False
