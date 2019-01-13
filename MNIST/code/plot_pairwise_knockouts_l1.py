@@ -237,6 +237,56 @@ def plot_unit_class_acc2(accs, accs_class, class_perc_redun, title, name):
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
 
+def plot_unit_class_acc2_paper(accs, accs_class, class_perc_redun, title, name):
+    fig = plt.figure(figsize=(12, 10))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
+    ax = fig.add_subplot(111)
+
+    bar_pos = np.linspace(-3, 27, 11, endpoint=True)
+    bar_pos[0] -= 2.0
+    bar_widths = np.zeros(11) + 0.8
+    bar_widths[0] += 0.8
+    bar_heights1 = np.insert(accs_class[0]*100, 0, accs[0])
+    bar_heights2 = np.insert((accs_class[0]-accs_class[1]) * 100, 0, accs[0]-accs[1])
+    bar_heights3 = bar_heights1-bar_heights2
+    bar_heights4 = class_perc_redun*100
+    bar_heights2 -= bar_heights4
+
+    ax.bar(x=bar_pos - bar_widths, align='center', height=bar_heights3, width=bar_widths,
+           color='k', edgecolor='k', lw=2)
+    ax.bar(x=bar_pos, align='center', height=bar_heights2, width=bar_widths,
+           color='r', edgecolor='k', lw=2)
+    ax.bar(x=bar_pos + bar_widths, align='center', height=bar_heights4, width=bar_widths,
+           color='orange', edgecolor='k', lw=2)
+    colors = ['k', 'r', 'orange']
+    for i_bars, bar_heights in enumerate([bar_heights3, bar_heights2, bar_heights4]):
+        for i, val in enumerate(bar_heights):
+            if i == 0:
+                ax.text(bar_pos[i]-2.4+1.6*i_bars, 112, "{0:.2f}%".format(val), color=colors[i_bars],
+                        fontsize=20, fontweight='bold', rotation=80)
+            else:
+                if val < 0:
+                    color = 'lime'
+                else:
+                    color = colors[i_bars]
+                ax.text(bar_pos[i] - 1.2 + 0.8*i_bars, 112, "{0:.2f}%".format(val), color=color,
+                        fontsize=14, fontweight='bold', rotation=80)
+    ax.axhline(y=accs[1], ls='--', lw=4, c='k')
+    ax.axhline(y=accs[0]-accs[1], ls='--', lw=4, c='r')
+    ax.axhline(y=bar_heights4[0], ls='--', lw=4, c='orange')
+    ax.set_xlabel("class label", fontsize=20, fontweight='bold')
+    ax.set_ylabel("accuracy [%]", fontsize=20, fontweight='bold')
+    ax.set_yticks(np.linspace(-10, 100, 12, endpoint=True))
+    ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=20)
+    ax.set_xticks(bar_pos)
+    labels = ["combined"] + np.arange(0, 10, 1).tolist()
+    ax.set_xticklabels(labels, fontsize=20)
+    # ax.set_title(title)
+    ax.set_ylim(-10, 115)
+    plt.tight_layout()
+    plt.savefig("../plots/unit_acc_" + name)
+    # plt.show()
+
 
 def plot_activation(testloader, weights, weights_ini, accs_class_full, accs_class, plot_corr_acc_act):
     inputs = testloader.dataset.test_data.numpy()
@@ -491,7 +541,10 @@ if __name__ == "__main__":
                 # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
                 #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
                 #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
-                plot_unit_class_acc2((acc_full, acc, acc_i, acc_k), (acc_class_full, acc_class, acc_class_i, acc_class_k), class_perc_redun,
+                # plot_unit_class_acc2((acc_full, acc, acc_i, acc_k), (acc_class_full, acc_class, acc_class_i, acc_class_k), class_perc_redun,
+                #                     title="knockout_{0},{1} - accuray: {2}%, delta_acc: {3:.2f}%".format(i_unit+1, k_unit+1, acc_full, acc_full-acc),
+                #                     name="knockout_{0},{1}_combined".format(i_unit+1, k_unit+1))
+                plot_unit_class_acc2_paper((acc_full, acc, acc_i, acc_k), (acc_class_full, acc_class, acc_class_i, acc_class_k), class_perc_redun,
                                     title="knockout_{0},{1} - accuray: {2}%, delta_acc: {3:.2f}%".format(i_unit+1, k_unit+1, acc_full, acc_full-acc),
                                     name="knockout_{0},{1}_combined".format(i_unit+1, k_unit+1))
 

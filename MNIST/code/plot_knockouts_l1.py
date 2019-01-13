@@ -233,6 +233,51 @@ def plot_unit_class_acc2(accs, accs_class, title, name):
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
 
+def plot_unit_class_acc2_paper(accs, accs_class, title, name):
+    fig = plt.figure(figsize=(12, 10))
+    fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
+    ax = fig.add_subplot(111)
+
+    bar_pos = np.linspace(-2, 18, 11, endpoint=True)
+    bar_pos[0] -= 2.0
+    bar_widths = np.zeros(11) + 0.8
+    bar_widths[0] += 0.8
+    bar_heights1 = np.insert(accs_class[0]*100, 0, accs[0])
+    bar_heights2 = np.insert((accs_class[0]-accs_class[1]) * 100, 0, accs[0]-accs[1])
+    bar_heights3 = bar_heights1-bar_heights2
+
+    ax.bar(x=bar_pos - 0.5*bar_widths, align='center', height=bar_heights3, width=bar_widths,
+           color='k', edgecolor='k', lw=2)
+    ax.bar(x=bar_pos + 0.5*bar_widths, align='center', height=bar_heights2, width=bar_widths,
+           color='r', edgecolor='k', lw=2)
+    colors = ['k', 'r']
+    for i_bars, bar_heights in enumerate([bar_heights3, bar_heights2]):
+        for i, val in enumerate(bar_heights):
+            if i == 0:
+                ax.text(bar_pos[i]-0.8+0.8*i_bars, 112, "{0:.2f}%".format(val), color=colors[i_bars],
+                        fontsize=20, fontweight='bold', rotation=80)
+            else:
+                if val < 0:
+                    color = 'lime'
+                else:
+                    color = colors[i_bars]
+                ax.text(bar_pos[i] - 0.8 + 0.8*i_bars, 112, "{0:.2f}%".format(val), color=color,
+                        fontsize=16, fontweight='bold', rotation=80)
+    ax.axhline(y=accs[1], ls='--', lw=4, c='k')
+    ax.axhline(y=accs[0]-accs[1], ls='--', lw=4, c='r')
+    ax.set_xlabel("class label", fontsize=20, fontweight='bold')
+    ax.set_ylabel("accuracy [%]", fontsize=20, fontweight='bold')
+    ax.set_yticks(np.linspace(-10, 100, 12, endpoint=True))
+    ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=20)
+    ax.set_xticks(bar_pos)
+    labels = ["combined"] + np.arange(0, 10, 1).tolist()
+    ax.set_xticklabels(labels, fontsize=20)
+    # ax.set_title(title)
+    ax.set_ylim(-10, 115)
+    plt.tight_layout()
+    plt.savefig("../plots/unit_acc_" + name)
+    # plt.show()
+
 
 def plot_activation(testloader, weights, weights_ini, accs_class_full, accs_class, plot_corr_acc_act):
     inputs = testloader.dataset.test_data.numpy()
@@ -368,10 +413,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
+    plot_w = False
     plot_tSNE_ = False
     plot_corr_acc_met = False
-    plot_unit_acc = False
+    plot_unit_acc = True
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
     plot_a_split = False
@@ -402,7 +447,7 @@ if __name__ == "__main__":
     # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
     weights = net_trained.fc1.weight.data.cpu().numpy()
     scale = (np.min(weights), np.max(weights))
-    acc_full, labels, acc_class_full = net_trained.test_net(criterion, testloader, device)
+    acc_full, labels, acc_class_full, _ = net_trained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained,
                      title="trained accuracy: {0}%".format(acc_full), name="full")
@@ -415,7 +460,7 @@ if __name__ == "__main__":
 
     # plot untrained network weights
     weights_ini = net_untrained.fc1.weight.data.cpu().numpy()
-    acc_untrained, _, _ = net_untrained.test_net(criterion, testloader, device)
+    acc_untrained, _, _, _ = net_untrained.test_net(criterion, testloader, device)
     if plot_w:
         plot_weights(weights_ini, scale, unit_struct_untrained, pixel_metrics_untrained, pixel_metrics_untrained,
                      title="untrained accuracy: {0}%".format(acc_untrained), name="0full")
@@ -431,7 +476,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         # weights = (net.fc1.weight.data.numpy().T + net.fc1.bias.data.numpy()).T  # biases considered
         weights = net_trained.fc1.weight.data.cpu().numpy()
-        acc, labels_ko, acc_class = net_trained.test_net(criterion, testloader, device)
+        acc, labels_ko, acc_class, _ = net_trained.test_net(criterion, testloader, device)
         accuracies[i_unit] = acc
         accuracies_class[i_unit] = acc_class
         unit_labels_ko[i_unit] = labels_ko
@@ -455,7 +500,10 @@ if __name__ == "__main__":
             # plot_unit_class_acc(acc_full-acc, acc_class_full-acc_class,
             #                     title="accuray: {0}%, delta_acc: {1:.2f}%".format(acc_full, acc_full-acc),
             #                     color='r', name="knockout_{0}_delta".format(i_unit+1))
-            plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
+            # plot_unit_class_acc2((acc_full, acc), (acc_class_full, acc_class),
+            #                     title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(i_unit+1, acc_full, acc_full-acc),
+            #                     name="knockout_{0}_combined".format(i_unit+1))
+            plot_unit_class_acc2_paper((acc_full, acc), (acc_class_full, acc_class),
                                 title="knockout_{0} - accuray: {1}%, delta_acc: {2:.2f}%".format(i_unit+1, acc_full, acc_full-acc),
                                 name="knockout_{0}_combined".format(i_unit+1))
 
