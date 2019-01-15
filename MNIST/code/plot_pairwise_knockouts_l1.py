@@ -123,7 +123,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     custom_cmap_red_colors[:, -1] = np.linspace(0, 1, custom_cmap_red.N)
     custom_cmap_red = ListedColormap(custom_cmap_red_colors)
 
-    custom_cmap_orange = plt.cm.Wistia
+    custom_cmap_orange = plt.cm.bwr_r
     custom_cmap_orange_colors = custom_cmap_orange(np.arange(custom_cmap_orange.N))
     custom_cmap_orange_colors[:, -1] = np.linspace(0, 1, custom_cmap_orange.N)
     custom_cmap_orange = ListedColormap(custom_cmap_orange_colors)
@@ -238,7 +238,7 @@ def plot_unit_class_acc2(accs, accs_class, class_perc_redun, title, name):
     # plt.show()
 
 def plot_unit_class_acc2_paper(accs, accs_class, class_perc_redun, title, name):
-    fig = plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(10, 8))
     fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
     ax = fig.add_subplot(111)
 
@@ -257,32 +257,32 @@ def plot_unit_class_acc2_paper(accs, accs_class, class_perc_redun, title, name):
     ax.bar(x=bar_pos, align='center', height=bar_heights2, width=bar_widths,
            color='r', edgecolor='k', lw=2)
     ax.bar(x=bar_pos + bar_widths, align='center', height=bar_heights4, width=bar_widths,
-           color='orange', edgecolor='k', lw=2)
-    colors = ['k', 'r', 'orange']
+           color='b', edgecolor='k', lw=2)
+    colors = ['k', 'r', 'b']
     for i_bars, bar_heights in enumerate([bar_heights3, bar_heights2, bar_heights4]):
         for i, val in enumerate(bar_heights):
             if i == 0:
-                ax.text(bar_pos[i]-2.4+1.6*i_bars, 112, "{0:.2f}%".format(val), color=colors[i_bars],
+                ax.text(bar_pos[i]-2.4+1.6*i_bars, 115, "{0:.2f}%".format(val), color=colors[i_bars],
                         fontsize=20, fontweight='bold', rotation=80)
             else:
                 if val < 0:
                     color = 'lime'
                 else:
                     color = colors[i_bars]
-                ax.text(bar_pos[i] - 1.2 + 0.8*i_bars, 112, "{0:.2f}%".format(val), color=color,
+                ax.text(bar_pos[i] - 1.2 + 0.8*i_bars, 115, "{0:.2f}%".format(val), color=color,
                         fontsize=14, fontweight='bold', rotation=80)
     ax.axhline(y=accs[1], ls='--', lw=4, c='k')
-    ax.axhline(y=accs[0]-accs[1], ls='--', lw=4, c='r')
-    ax.axhline(y=bar_heights4[0], ls='--', lw=4, c='orange')
-    ax.set_xlabel("class label", fontsize=20, fontweight='bold')
-    ax.set_ylabel("accuracy [%]", fontsize=20, fontweight='bold')
+    ax.axhline(y=bar_heights2[0], ls='--', lw=4, c='r')
+    ax.axhline(y=bar_heights4[0], ls='--', lw=4, c='b')
+    ax.set_xlabel("Class label", fontsize=20)
+    ax.set_ylabel("Accuracy [%]", fontsize=20)
     ax.set_yticks(np.linspace(-10, 100, 12, endpoint=True))
     ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=20)
     ax.set_xticks(bar_pos)
     labels = ["combined"] + np.arange(0, 10, 1).tolist()
     ax.set_xticklabels(labels, fontsize=20)
     # ax.set_title(title)
-    ax.set_ylim(-10, 115)
+    ax.set_ylim(-10, 120)
     plt.tight_layout()
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
