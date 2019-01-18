@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
 from matplotlib.colors import ListedColormap
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import scipy.stats as spst
 
@@ -20,10 +21,11 @@ from train_test_net import Net
 def plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untrained, title, name):
     fig = plt.figure(figsize=(10, 10))
     fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.05, wspace=0.2, hspace=0.5)
-    for i in range(20):
-        ax = fig.add_subplot(4, 5, i+1)
+    axes = fig.subplots(4, 5)
+    for i, ax in enumerate(axes.flat):
         i_weights = weights[i].reshape(28, 28)
-        ax.matshow(i_weights, cmap='seismic', vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
+        im = ax.matshow(i_weights, cmap='seismic', vmin=scale[0]-np.mean(scale), vmax=scale[1]-np.mean(scale))
+
         ax.set_xticks(())
         ax.set_yticks(())
         # ax.set_title("U: {0:.2e}, p: {1:.2e}".format(int(unit_struct[i, 2]), unit_struct[i, 3]))
@@ -31,6 +33,9 @@ def plot_weights(weights, scale, unit_struct, pixel_metrics, pixel_metrics_untra
         # ax.set_xlabel("mean: {0:.2f}, std: {1:.4f}".format(int(unit_struct[i, 0]), unit_struct[i, 1]))
         # ax.set_ylabel("rel. pixel metric: {0:.2f}".format(np.sum(pixel_metrics[i])/np.sum(pixel_metrics_untrained[i])))
     # plt.suptitle("{0}".format(title))
+
+    fig.colorbar(im, ax=axes.ravel().tolist())
+
     plt.tight_layout()
     plt.savefig("../plots/weights_" + name)
     plt.close()
@@ -89,13 +94,23 @@ def plot_acc_metric_corr(metrics, accuracies):
     fig.subplots_adjust(left=0.08, right=0.95, top=0.96, bottom=0.10, wspace=0.2, hspace=0.2)
     ax = fig.add_subplot(111)
     ax.invert_xaxis()
-    ax.semilogx(metrics, accuracies, lw=0, marker='o', label="pearson - r: {0:.2f}, p: {1:.2e} \n"
-                                                             "spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2))
-    ax.set_xlabel("metric")
-    ax.set_ylabel("delta accuracy [%]")
-    ax.legend(loc=2)
+    ax.semilogx(metrics, accuracies, c='b', lw=0, marker='o', markersize=12,
+                label="pearson - r: {0:.2f}, p: {1:.2e} \n"
+                      "spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2))
+    # ax.ticklabel_format(useMathText=True)
+    ax.set_xlabel("Mann-Whitney U - p-value", fontsize=20)
+    ax.set_ylabel("Accuracy drop [%p]", fontsize=20)
+    plt.xticks(size=20)
+    ax.set_yticklabels(ax.get_yticks(), fontsize=20)
+    box_specs = dict(boxstyle='round', facecolor='white', alpha=1.0)
+    ax.text(1e-7, 1, "pearson - r: {0:.2f}, p: {1:.2e} \n"
+                     "spearman - r: {2:.2f}, p: {3:.2e}".format(r, p, r2, p2), bbox=box_specs,
+            fontsize=18)
     ax.grid(axis='y')
+    plt.tight_layout()
     plt.savefig("../plots/acc_metric_corr.png")
+    np.savetxt("../plots/metrics.txt", metrics)
+    np.savetxt("../plots/accuracies.txt", accuracies)
 
 
 def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
@@ -413,10 +428,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = False
+    plot_w = True
     plot_tSNE_ = False
     plot_corr_acc_met = False
-    plot_unit_acc = True
+    plot_unit_acc = False
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
     plot_a_split = False
@@ -470,6 +485,8 @@ if __name__ == "__main__":
     accuracies_class = np.zeros((20, 10))
     unit_labels_ko = np.zeros((20, 10000))
     for i_unit in range(20):
+        # if i_unit != 15:
+        #     continue
         print("knockout unit {0}".format(i_unit))
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
         net_trained.eval()
