@@ -479,7 +479,7 @@ if __name__ == "__main__":
     accuracies_class = np.zeros((20, 20, 10))
     unit_labels_ko = np.zeros((20, 20, 10000))
     for i_unit in range(20):
-        if i_unit != 11:
+        if i_unit != 3:
             continue
 
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
@@ -487,7 +487,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         acc_i, labels_ko_i, acc_class_i, _ = net_trained.test_net(criterion, testloader, device)
         for k_unit in range(i_unit, 20):
-            if k_unit != 18:
+            if k_unit != 15:
                 continue
 
             print("knockout unit {0} and {1}".format(i_unit, k_unit))
