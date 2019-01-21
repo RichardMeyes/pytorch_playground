@@ -262,15 +262,25 @@ def plot_unit_class_acc2_paper(accs, accs_class, class_perc_redun, title, name):
     for i_bars, bar_heights in enumerate([bar_heights3, bar_heights2, bar_heights4]):
         for i, val in enumerate(bar_heights):
             if i == 0:
-                ax.text(bar_pos[i]-2.4+1.6*i_bars, 115, "{0:.2f}%".format(val), color=colors[i_bars],
+                if i_bars == 0:
+                    ax.text(bar_pos[i]-2.4+1.4*i_bars, 118, "{0:.1f}%".format(val), color=colors[i_bars],
                         fontsize=20, fontweight='bold', rotation=80)
+                else:
+                    ax.text(bar_pos[i] - 2.6 + 1.3 * i_bars, 118, "+{0:.1f}%p".format(val), color=colors[i_bars],
+                            fontsize=20, fontweight='bold', rotation=80)
             else:
                 if val < 0:
                     color = 'lime'
+                    ax.text(bar_pos[i] - 1.3 + 0.8 * i_bars, 118, "{0:.1f}%p".format(val), color=color,
+                            fontsize=14, fontweight='bold', rotation=80)
                 else:
                     color = colors[i_bars]
-                ax.text(bar_pos[i] - 1.2 + 0.8*i_bars, 115, "{0:.2f}%".format(val), color=color,
-                        fontsize=14, fontweight='bold', rotation=80)
+                    if i_bars == 0:
+                        ax.text(bar_pos[i] - 1.1, 118, "{0:.1f}%".format(val), color=color,
+                                fontsize=14, fontweight='bold', rotation=80)
+                    else:
+                        ax.text(bar_pos[i] - 1.3 + 0.8 * i_bars, 118, "+{0:.1f}%p".format(val), color=color,
+                                fontsize=14, fontweight='bold', rotation=80)
     ax.axhline(y=accs[1], ls='--', lw=4, c='k')
     ax.axhline(y=bar_heights2[0], ls='--', lw=4, c='r')
     ax.axhline(y=bar_heights4[0], ls='--', lw=4, c='b')
@@ -282,7 +292,7 @@ def plot_unit_class_acc2_paper(accs, accs_class, class_perc_redun, title, name):
     labels = ["combined"] + np.arange(0, 10, 1).tolist()
     ax.set_xticklabels(labels, fontsize=20)
     # ax.set_title(title)
-    ax.set_ylim(-10, 120)
+    ax.set_ylim(-10, 125)
     plt.tight_layout()
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
@@ -423,7 +433,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
     plot_w = False
-    plot_tSNE_ = True
+    plot_tSNE_ = False
     plot_corr_acc_met = False
     plot_unit_acc = True
     plot_a = False
@@ -479,7 +489,7 @@ if __name__ == "__main__":
     accuracies_class = np.zeros((20, 20, 10))
     unit_labels_ko = np.zeros((20, 20, 10000))
     for i_unit in range(20):
-        if i_unit != 11:
+        if i_unit != 3:
             continue
 
         net_trained.load_state_dict(torch.load('../nets/MNIST_MLP(20, 10)_trained.pt'))
@@ -487,7 +497,7 @@ if __name__ == "__main__":
         net_trained.fc1.weight.data[i_unit, :] = torch.zeros(784)
         acc_i, labels_ko_i, acc_class_i, _ = net_trained.test_net(criterion, testloader, device)
         for k_unit in range(i_unit, 20):
-            if k_unit != 18:
+            if k_unit != 15:
                 continue
 
             print("knockout unit {0} and {1}".format(i_unit, k_unit))

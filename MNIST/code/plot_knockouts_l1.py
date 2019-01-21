@@ -269,15 +269,25 @@ def plot_unit_class_acc2_paper(accs, accs_class, title, name):
     for i_bars, bar_heights in enumerate([bar_heights3, bar_heights2]):
         for i, val in enumerate(bar_heights):
             if i == 0:
-                ax.text(bar_pos[i]-0.8+0.8*i_bars, 115, "{0:.2f}%".format(val), color=colors[i_bars],
-                        fontsize=20, fontweight='bold', rotation=80)
+                if i_bars == 0:
+                    ax.text(bar_pos[i]-0.8+0.8*i_bars, 118, "{0:.1f}%".format(val), color=colors[i_bars],
+                            fontsize=20, fontweight='bold', rotation=80)
+                else:
+                    ax.text(bar_pos[i] - 0.8 + 0.7 * i_bars, 118, "+{0:.1f}%p".format(val), color=colors[i_bars],
+                            fontsize=20, fontweight='bold', rotation=80)
             else:
                 if val < 0:
                     color = 'lime'
+                    ax.text(bar_pos[i] - 0.8 + 0.7 * i_bars, 118, "{0:.1f}%p".format(val), color=color,
+                            fontsize=16, fontweight='bold', rotation=80)
                 else:
                     color = colors[i_bars]
-                ax.text(bar_pos[i] - 0.8 + 0.8*i_bars, 115, "{0:.2f}%".format(val), color=color,
-                        fontsize=16, fontweight='bold', rotation=80)
+                    if i_bars == 0:
+                        ax.text(bar_pos[i] - 0.8 + 0.8*i_bars, 118, "{0:.1f}%".format(val), color=color,
+                                fontsize=16, fontweight='bold', rotation=80)
+                    else:
+                        ax.text(bar_pos[i] - 0.8 + 0.7 * i_bars, 118, "+{0:.1f}%p".format(val), color=color,
+                                fontsize=16, fontweight='bold', rotation=80)
     ax.axhline(y=accs[1], ls='--', lw=4, c='k')
     ax.axhline(y=accs[0]-accs[1], ls='--', lw=4, c='r')
     ax.set_xlabel("Class label", fontsize=20)
@@ -288,7 +298,7 @@ def plot_unit_class_acc2_paper(accs, accs_class, title, name):
     labels = ["combined"] + np.arange(0, 10, 1).tolist()
     ax.set_xticklabels(labels, fontsize=20)
     # ax.set_title(title)
-    ax.set_ylim(-10, 120)
+    ax.set_ylim(-10, 125)
     plt.tight_layout()
     plt.savefig("../plots/unit_acc_" + name)
     # plt.show()
@@ -428,10 +438,10 @@ if __name__ == "__main__":
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     """ setting flags """
-    plot_w = True
+    plot_w = False
     plot_tSNE_ = False
     plot_corr_acc_met = False
-    plot_unit_acc = False
+    plot_unit_acc = True
     plot_a = False
     plot_corr_acc_act = False  # has only effect if plot_a is True
     plot_a_split = False
