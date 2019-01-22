@@ -174,7 +174,7 @@ def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
 
 
 def plot_unit_class_acc(acc, acc_class, title, name, color='k', paper=False):
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(10, 8))
     fig.subplots_adjust(left=0.07, right=0.95, top=0.95, bottom=0.05)
     ax = fig.add_subplot(111)
 
@@ -189,8 +189,8 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k', paper=False):
         ax.text(bar_pos[i]-0.4, 110, "{0:.2f}%".format(val), color='k', fontweight='bold', fontsize=20, rotation=45)
     ax.axvline(x=-0.8, lw=4, ls='--', c='k')
     ax.axhline(y=acc, ls='--', lw=4, c='r', label="class averaged accuracy")
-    ax.set_xlabel("class label", fontsize=20, fontweight='bold')
-    ax.set_ylabel("accuracy [%]", fontsize=20, fontweight='bold')
+    ax.set_xlabel("Class label", fontsize=20)
+    ax.set_ylabel("Accuracy [%]", fontsize=20)
     ax.set_xticks(bar_pos)
     labels = ["combined"] + np.arange(0, 10, 1).tolist()
     ax.set_xticklabels(labels, fontsize=20)
@@ -482,6 +482,8 @@ if __name__ == "__main__":
         plot_tSNE(testloader, labels, num_samples=10000, name="clean", title="accuray: {0}%".format(acc_full))
     if plot_unit_acc:
         plot_unit_class_acc(acc_full, acc_class_full, title="accuray: {0}%".format(acc_full), name="full", paper=True)
+
+    quit()
 
     # plot untrained network weights
     weights_ini = net_untrained.fc1.weight.data.cpu().numpy()
