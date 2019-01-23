@@ -186,9 +186,9 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k', paper=False):
     ax.bar(x=bar_pos, align='center', height=bar_heights, width=bar_widths,
            color=color, edgecolor='k', lw=2)
     for i, val in enumerate(bar_heights):
-        ax.text(bar_pos[i]-0.4, 110, "{0:.2f}%".format(val), color='k', fontweight='bold', fontsize=20, rotation=45)
-    ax.axvline(x=-0.8, lw=4, ls='--', c='k')
-    ax.axhline(y=acc, ls='--', lw=4, c='r', label="class averaged accuracy")
+        ax.text(bar_pos[i]-0.4, 115, "{0:.2f}%".format(val), color='k', fontweight='bold', fontsize=20, rotation=45)
+    # ax.axvline(x=-0.8, lw=4, ls='--', c='k')
+    ax.axhline(y=acc, ls='--', lw=4, c='k', label="class averaged accuracy")
     ax.set_xlabel("Class label", fontsize=20)
     ax.set_ylabel("Accuracy [%]", fontsize=20)
     ax.set_xticks(bar_pos)
@@ -196,7 +196,7 @@ def plot_unit_class_acc(acc, acc_class, title, name, color='k', paper=False):
     ax.set_xticklabels(labels, fontsize=20)
     ax.set_yticks([0, 20, 40, 60, 80, 100])
     ax.set_yticklabels(ax.get_yticks().astype(int), fontsize=20)
-    ax.set_ylim(0, 115)
+    ax.set_ylim(0, 120)
     # ax.set_ylim(-10, 110)
     plt.legend(loc=4, fontsize=20)
     plt.tight_layout()
