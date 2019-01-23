@@ -115,7 +115,8 @@ def plot_acc_metric_corr(metrics, accuracies):
 
 def plot_tSNE(testloader, labels, num_samples, name=None, title=None):
     X_img = testloader.dataset.test_data.numpy()[:num_samples]
-
+    X_img_label = testloader.dataset.test_labels.target.numpy()[:num_samples]
+        
     print("loading fitted tSNE coordinates...")
     X_tsne = pickle.load(open("../data/tSNE/X_tSNE_10000.p".format(num_samples), "rb"))
 
